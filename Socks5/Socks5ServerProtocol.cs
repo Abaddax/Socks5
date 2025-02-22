@@ -1,0 +1,195 @@
+﻿using Abaddax.Utilities.Network;
+using Socks5.Protocol;
+using Socks5.Protocol.Messages;
+using Socks5.Protocol.Messages.Parser;
+using System.Collections.Concurrent;
+
+namespace Socks5
+{
+    public sealed class Socks5ServerProtocol : IDisposable
+    {
+        private enum ServerState
+        {
+            None = 0,
+            Authentication = 1,
+            Connection = 2,
+            Connected = 3
+        }
+
+        private readonly Socks5Parser _parser = new();
+        private readonly ConcurrentQueue<Socks5ConnectionLog>? _connectionLog;
+
+        private Stream _stream;
+        private Stream? _remoteStream;
+        private ServerState _state;
+        private StreamProxy? _proxy;
+        private bool _disposedValue;
+
+        public Socks5ServerProtocol(Stream stream, bool useConnectionLog = false)
+        {
+            _stream = stream ?? throw new ArgumentNullException(nameof(stream));
+
+            if (useConnectionLog)
+                _connectionLog = new();
+
+            _state = ServerState.None;
+        }
+
+        public Socks5ServerOptions Options { get; init; } = new Socks5ServerOptions();
+
+
+        public Stream LocalStream
+        {
+            get
+            {
+                if (_state != ServerState.Connected)
+                    throw new InvalidOperationException("Not jet connected");
+                return _stream;
+            }
+        }
+        public Stream? RemoteStream
+        {
+            get
+            {
+                if (_state != ServerState.Connected)
+                    throw new InvalidOperationException("Not jet connected");
+                return _remoteStream;
+            }
+        }
+        public bool IsProxyActive => _proxy?.Active ?? false;
+
+        public AddressType AddressType { get; private set; } = AddressType.IPv4;
+        public string Address { get; private set; } = "0.0.0.0";
+        public int Port { get; private set; } = 0;
+
+
+        public IEnumerable<Socks5ConnectionLog> ConnectionLog => _connectionLog?.ToArray() ?? Array.Empty<Socks5ConnectionLog>();
+
+
+        public async Task AcceptAsync(CancellationToken token = default)
+        {
+            if (_state != ServerState.None)
+                throw new InvalidOperationException("This method can only be called once");
+
+            try
+            {
+                _connectionLog?.Clear();
+                _state = ServerState.Authentication;
+
+                AuthenticationMethod authMethod;
+                //Read authentication-request
+                {
+                    var authRequest = await ((IStreamParser<AuthenticationRequest>)_parser).ReadAsync(_stream, token);
+                    authMethod = await Options.AuthenticationHandler.SelectAuthenticationMethod(authRequest.AuthenticationMethods, token) ?? AuthenticationMethod.NoAcceptableMethods;
+                }
+                //Send authentication-response
+                {
+                    var authResponse = new AuthenticationResponse()
+                    {
+                        AuthenticationMethod = authMethod
+                    };
+                    await ((IStreamParser<AuthenticationResponse>)_parser).WriteAsync(_stream, authResponse, token);
+                    if (authResponse.AuthenticationMethod == AuthenticationMethod.NoAcceptableMethods)
+                        throw new Exception("Invalid authentication method");
+                }
+
+                //Handle authentication
+                _stream = await Options.AuthenticationHandler.AuthenticationHandler(_stream, authMethod, token);
+
+                _state = ServerState.Connection;
+
+                ConnectCode code;
+                //Read connect-request
+                {
+                    var conRequest = await ((IStreamParser<ConnectRequest>)_parser).ReadAsync(_stream, token);
+
+                    AddressType = conRequest.AddressType;
+                    Address = conRequest.Address;
+                    Port = conRequest.Port;
+                    try
+                    {
+                        (code, _remoteStream) = await Options.ConnectHandler.Invoke(conRequest.ConnectMethod, conRequest.AddressType, conRequest.Address, conRequest.Port, token);
+                    }
+                    catch (Exception ex)
+                    {
+                        code = ConnectCode.SocksFailure;
+                        _remoteStream = null;
+                    }
+                }
+                //Send connect-response
+                {
+                    var conResponse = new ConnectResponse()
+                    {
+                        ConnectCode = code,
+                        AddressType = AddressType,
+                        Address = Address,
+                        Port = Port,
+                    };
+                    await ((IStreamParser<ConnectResponse>)_parser).WriteAsync(_stream, conResponse, token);
+                    if (code != ConnectCode.Succeeded)
+                    {
+                        _stream.Close();
+                        throw new Exception($"Unable to connect to remote. Code: {code}");
+                    }
+                }
+
+                _state = ServerState.Connected;
+            }
+            catch (Exception ex)
+            {
+                _stream.Close();
+                throw;
+            }
+        }
+
+        public async Task ProxyAsync(CancellationToken token = default, bool leaveOpen = false)
+        {
+            if (_state != ServerState.Connected)
+                throw new InvalidOperationException("No client connected, accept the connection first");
+            if (_remoteStream == null)
+                throw new InvalidOperationException("No remote-stream to proxy");
+            if (IsProxyActive)
+                throw new InvalidOperationException("Proxy is already running");
+            _proxy?.Dispose();
+            _proxy = new StreamProxy(_stream, _remoteStream, leaveStream1Open: leaveOpen, leaveStream2Open: leaveOpen);
+            await _proxy.TunnelAsync(token);
+            if (!leaveOpen)
+            {
+                _remoteStream.Close();
+                _stream.Close();
+                _state = ServerState.None;
+            }
+        }
+
+        public async Task DisconnectAsync()
+        {
+            _remoteStream?.Dispose();
+            _stream?.Dispose();
+        }
+
+        #region IDisposable
+        private void Dispose(bool disposing)
+        {
+            if (!_disposedValue)
+            {
+                if (disposing)
+                {
+                    _remoteStream?.Dispose();
+                    _stream?.Dispose();
+                }
+                _disposedValue = true;
+            }
+        }
+        ~Socks5ServerProtocol()
+        {
+            Dispose(false);
+        }
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        #endregion
+
+    }
+}
