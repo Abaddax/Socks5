@@ -38,6 +38,8 @@ namespace Socks5.Tests
                 .WithConnectMethod(ConnectMethod.TCPConnect)
                 .WithNoAuthenticationRequired();
 
+            clientOptions.ValidateReceivedEndpoint = false;
+
             var serverTask = server.StartAsync();
             try
             {
@@ -77,6 +79,8 @@ namespace Socks5.Tests
             var clientOptions = new Socks5ClientOptions()
                 .WithConnectMethod(ConnectMethod.TCPConnect)
                 .WithUsernamePasswordAuthentication("user123", "password123");
+
+            clientOptions.ValidateReceivedEndpoint = false;
 
             var serverTask = server.StartAsync();
             try

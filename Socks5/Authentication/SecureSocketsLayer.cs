@@ -64,7 +64,7 @@ namespace Socks5.Authentication
         }
 
         #region Helper
-        private sealed class Socks5CryptoStream : Stream2
+        private sealed class Socks5CryptoStream : SpanStream
         {
             /// <summary>
             /// https://datatracker.ietf.org/doc/html/draft-ietf-aft-socks-ssl-00

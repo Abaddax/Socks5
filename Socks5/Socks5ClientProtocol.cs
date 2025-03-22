@@ -104,9 +104,10 @@ namespace Socks5
                     var conResponse = await ((IStreamParser<ConnectResponse>)_parser).ReadAsync(_stream, token);
                     if (conResponse.ConnectCode != ConnectCode.Succeeded)
                         throw new Exception($"Connect failed with code: {conResponse.ConnectCode}");
-                    if (conResponse.AddressType != type ||
+                    if (Options.ValidateReceivedEndpoint &&
+                        (conResponse.AddressType != type ||
                         conResponse.Address != address ||
-                        conResponse.Port != port)
+                        conResponse.Port != port))
                         throw new Exception("Received unknown connection-endpoint");
                 }
 
