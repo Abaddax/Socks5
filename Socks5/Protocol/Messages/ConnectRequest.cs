@@ -1,4 +1,6 @@
-﻿namespace Socks5.Protocol.Messages
+﻿using Abaddax.Socks5.Protocol.Enums;
+
+namespace Abaddax.Socks5.Protocol.Messages
 {
     internal struct ConnectRequest
     {

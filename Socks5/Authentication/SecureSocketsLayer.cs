@@ -1,8 +1,8 @@
-﻿using Abaddax.Utilities.IO;
-using Socks5.Protocol;
+﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Utilities.IO;
 using System.Buffers.Binary;
 
-namespace Socks5.Authentication
+namespace Abaddax.Socks5.Authentication
 {
     public delegate Task<Stream> TlsHandshakeHandler(Stream stream, CancellationToken token);
 

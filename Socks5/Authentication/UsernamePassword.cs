@@ -1,9 +1,9 @@
-﻿using Abaddax.Utilities.Buffers;
+﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Utilities.Buffers;
 using Abaddax.Utilities.Network;
-using Socks5.Protocol;
 using System.Text;
 
-namespace Socks5.Authentication
+namespace Abaddax.Socks5.Authentication
 {
     public delegate Task<bool> UserLoginHandler(string username, string password, CancellationToken token);
     internal sealed class UsernamePasswordClient : IAuthenticationHandler

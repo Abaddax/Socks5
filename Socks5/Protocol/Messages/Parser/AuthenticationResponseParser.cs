@@ -1,7 +1,8 @@
-﻿using Abaddax.Utilities.Buffers;
+﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Utilities.Buffers;
 using Abaddax.Utilities.Network;
 
-namespace Socks5.Protocol.Messages.Parser
+namespace Abaddax.Socks5.Protocol.Messages.Parser
 {
     internal partial class Socks5Parser :
         IBinaryParser<AuthenticationResponse>,

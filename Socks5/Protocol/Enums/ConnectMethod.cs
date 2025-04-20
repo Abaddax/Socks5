@@ -1,4 +1,4 @@
-﻿namespace Socks5.Protocol
+﻿namespace Abaddax.Socks5.Protocol.Enums
 {
     public enum ConnectMethod : byte
     {

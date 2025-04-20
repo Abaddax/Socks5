@@ -1,7 +1,7 @@
-﻿using Socks5.Authentication;
-using Socks5.Protocol;
+﻿using Abaddax.Socks5.Authentication;
+using Abaddax.Socks5.Protocol.Enums;
 
-namespace Socks5
+namespace Abaddax.Socks5
 {
     public delegate Task<(ConnectCode Result, Stream? Stream)> ConnectionHandler(ConnectMethod method, AddressType type, string address, int port, CancellationToken token);
 

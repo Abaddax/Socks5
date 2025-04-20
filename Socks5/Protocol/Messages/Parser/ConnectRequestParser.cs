@@ -1,10 +1,11 @@
-﻿using Abaddax.Utilities.Buffers;
+﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Utilities.Buffers;
 using Abaddax.Utilities.Network;
 using System.Buffers.Binary;
 using System.Net;
 using System.Text;
 
-namespace Socks5.Protocol.Messages.Parser
+namespace Abaddax.Socks5.Protocol.Messages.Parser
 {
     internal partial class Socks5Parser :
         IBinaryParser<ConnectRequest>,

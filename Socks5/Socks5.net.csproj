@@ -1,5 +1,23 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <RootNamespace>Abaddax.$(MSBuildProjectName.Replace(".net",""))</RootNamespace>
+    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
+    <PackageId>$(MSBuildProjectName)</PackageId>
+    <Version>0.1.0</Version>
+    <Description>SOCKS5 Server/Client implementated in .NET</Description>
+    <Authors>Abaddax</Authors>
+    <Company></Company>
+    <Copyright>Abaddax</Copyright>
+    <RepositoryUrl>https://github.com/Abaddax/$(PackageId)</RepositoryUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseUrl>https://github.com/Abaddax/$(PackageId)/blob/master/LICENSE</PackageLicenseUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <IncludeSource>true</IncludeSource>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+    
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

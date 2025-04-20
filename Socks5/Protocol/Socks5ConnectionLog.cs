@@ -1,4 +1,4 @@
-﻿namespace Socks5.Protocol
+﻿namespace Abaddax.Socks5.Protocol
 {
     public struct Socks5ConnectionLog
     {

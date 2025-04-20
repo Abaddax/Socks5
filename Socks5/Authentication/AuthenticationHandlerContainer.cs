@@ -1,7 +1,7 @@
-﻿using Socks5.Protocol;
+﻿using Abaddax.Socks5.Protocol.Enums;
 using System.Collections;
 
-namespace Socks5.Authentication
+namespace Abaddax.Socks5.Authentication
 {
     internal sealed class AuthenticationHandlerContainer : IAuthenticationHandler, IEnumerable<IAuthenticationHandler>
     {

@@ -1,6 +1,6 @@
-﻿using Socks5.Protocol;
+﻿using Abaddax.Socks5.Protocol.Enums;
 
-namespace Socks5.Authentication
+namespace Abaddax.Socks5.Authentication
 {
     internal sealed class NoAuthenticationRequired : IAuthenticationHandler
     {

@@ -1,12 +1,12 @@
-﻿using Pipelines.Extensions;
+﻿using Abaddax.Socks5.Protocol.Enums;
+using Pipelines.Extensions;
 using Socks5.Clients;
 using Socks5.Models;
-using Socks5.Protocol;
 using Socks5.Servers;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Socks5.Tests
+namespace Abaddax.Socks5.Tests
 {
     public class InteropTest
     {

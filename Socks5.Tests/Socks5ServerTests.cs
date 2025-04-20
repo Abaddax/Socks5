@@ -1,10 +1,10 @@
-﻿using Socks5.Protocol;
+﻿using Abaddax.Socks5.Protocol.Enums;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 
-namespace Socks5.Tests
+namespace Abaddax.Socks5.Tests
 {
     public class Socks5ServerTests
     {

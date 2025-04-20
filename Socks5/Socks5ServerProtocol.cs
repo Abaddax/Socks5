@@ -1,10 +1,11 @@
-﻿using Abaddax.Utilities.Network;
-using Socks5.Protocol;
-using Socks5.Protocol.Messages;
-using Socks5.Protocol.Messages.Parser;
+﻿using Abaddax.Socks5.Protocol;
+using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Socks5.Protocol.Messages;
+using Abaddax.Socks5.Protocol.Messages.Parser;
+using Abaddax.Utilities.Network;
 using System.Collections.Concurrent;
 
-namespace Socks5
+namespace Abaddax.Socks5
 {
     public sealed class Socks5ServerProtocol : IDisposable
     {
