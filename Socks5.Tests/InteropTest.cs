@@ -10,13 +10,16 @@ namespace Abaddax.Socks5.Tests
 {
     public class InteropTest
     {
+        const int _localPort = 11080;
+        const int _remotePort = 12345;
+
         TcpListener _remoteListener;
         TcpClient? _remoteClient;
 
         [SetUp]
         public void Setup()
         {
-            _remoteListener = new TcpListener(IPAddress.Loopback, 12345);
+            _remoteListener = new TcpListener(IPAddress.Loopback, _remotePort);
             _remoteListener.Start();
             _remoteClient = null;
         }
@@ -31,28 +34,30 @@ namespace Abaddax.Socks5.Tests
         [Test]
         public async Task ShouldConnectWithNoAuthenticationAndProxyData()
         {
-            IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Loopback, 1080);
+            IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Loopback, _localPort);
             SimpleSocks5Server server = new SimpleSocks5Server(serverEndpoint, null);
 
             var clientOptions = new Socks5ClientOptions()
+                {
+                    ValidateReceivedEndpoint = false
+                }
                 .WithConnectMethod(ConnectMethod.TCPConnect)
                 .WithNoAuthenticationRequired();
 
-            clientOptions.ValidateReceivedEndpoint = false;
 
             var serverTask = server.StartAsync();
             try
             {
-                using var client = new TcpClient("127.0.0.1", 1080);
+                using var client = new TcpClient("127.0.0.1", _localPort);
                 using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = clientOptions };
 
-                var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", 12345);
+                var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
                 using var remotePeer = await _remoteListener.AcceptTcpClientAsync();
                 await connectTask;
 
                 Assert.That(socksClient.AddressType, Is.EqualTo(AddressType.IPv4));
                 Assert.That(socksClient.Address, Is.EqualTo("127.0.0.1"));
-                Assert.That(socksClient.Port, Is.EqualTo(12345));
+                Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
 
                 Assert.That(socksClient.Stream, Is.Not.Null);
 
@@ -68,7 +73,7 @@ namespace Abaddax.Socks5.Tests
         [Test]
         public async Task ShouldConnectWithUsernamePasswordAndProxyData()
         {
-            IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Loopback, 1080);
+            IPEndPoint serverEndpoint = new IPEndPoint(IPAddress.Loopback, _localPort);
             UsernamePassword userPass = new()
             {
                 UserName = "user123",
@@ -77,24 +82,25 @@ namespace Abaddax.Socks5.Tests
             SimpleSocks5Server server = new SimpleSocks5Server(serverEndpoint, userPass);
 
             var clientOptions = new Socks5ClientOptions()
+                {
+                    ValidateReceivedEndpoint = false
+                }
                 .WithConnectMethod(ConnectMethod.TCPConnect)
                 .WithUsernamePasswordAuthentication("user123", "password123");
-
-            clientOptions.ValidateReceivedEndpoint = false;
 
             var serverTask = server.StartAsync();
             try
             {
-                using var client = new TcpClient("127.0.0.1", 1080);
+                using var client = new TcpClient("127.0.0.1", _localPort);
                 using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = clientOptions };
 
-                var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", 12345);
+                var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
                 using var remotePeer = await _remoteListener.AcceptTcpClientAsync();
                 await connectTask;
 
                 Assert.That(socksClient.AddressType, Is.EqualTo(AddressType.IPv4));
                 Assert.That(socksClient.Address, Is.EqualTo("127.0.0.1"));
-                Assert.That(socksClient.Port, Is.EqualTo(12345));
+                Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
 
                 Assert.That(socksClient.Stream, Is.Not.Null);
 
@@ -110,7 +116,7 @@ namespace Abaddax.Socks5.Tests
         [Test]
         public async Task ShouldAcceptWithNoAuthenticationAndProxyData()
         {
-            using var listener = new TcpListener(IPAddress.Loopback, 1080);
+            using var listener = new TcpListener(IPAddress.Loopback, _localPort);
             listener.Start();
 
             var serverOptions = new Socks5ServerOptions()
@@ -120,7 +126,7 @@ namespace Abaddax.Socks5.Tests
                     if (method != ConnectMethod.TCPConnect)
                         return (ConnectCode.NotAllowedByRuleset, null);
 
-                    if (type != AddressType.IPv4 || address != "127.0.0.1" || port != 12345)
+                    if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                         return (ConnectCode.ConnectionRefused, null);
 
                     var serverTask = _remoteListener.AcceptTcpClientAsync();
@@ -133,12 +139,12 @@ namespace Abaddax.Socks5.Tests
             Socks5CreateOption option = new()
             {
                 Address = IPAddress.Loopback,
-                Port = 1080,
+                Port = _localPort,
                 UsernamePassword = null,
             };
 
             using var socksClient = new Socks5Client(option);
-            var connectTask = socksClient.ConnectAsync(IPAddress.Loopback, 12345);
+            var connectTask = socksClient.ConnectAsync(IPAddress.Loopback, _remotePort);
 
             using var server = await listener.AcceptTcpClientAsync();
             using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
@@ -149,7 +155,7 @@ namespace Abaddax.Socks5.Tests
 
             Assert.That(socksServer.AddressType, Is.EqualTo(AddressType.IPv4));
             Assert.That(socksServer.Address, Is.EqualTo("127.0.0.1"));
-            Assert.That(socksServer.Port, Is.EqualTo(12345));
+            Assert.That(socksServer.Port, Is.EqualTo(_remotePort));
 
             Assert.That(socksServer.LocalStream, Is.Not.Null);
             Assert.That(socksServer.RemoteStream, Is.Not.Null);
@@ -172,7 +178,7 @@ namespace Abaddax.Socks5.Tests
         [Test]
         public async Task ShouldAcceptWithUsernamePasswordAndProxyData()
         {
-            using var listener = new TcpListener(IPAddress.Loopback, 1080);
+            using var listener = new TcpListener(IPAddress.Loopback, _localPort);
             listener.Start();
 
             var serverOptions = new Socks5ServerOptions()
@@ -187,7 +193,7 @@ namespace Abaddax.Socks5.Tests
                     if (method != ConnectMethod.TCPConnect)
                         return (ConnectCode.NotAllowedByRuleset, null);
 
-                    if (type != AddressType.IPv4 || address != "127.0.0.1" || port != 12345)
+                    if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                         return (ConnectCode.ConnectionRefused, null);
 
                     var serverTask = _remoteListener.AcceptTcpClientAsync();
@@ -205,12 +211,12 @@ namespace Abaddax.Socks5.Tests
             Socks5CreateOption option = new()
             {
                 Address = IPAddress.Loopback,
-                Port = 1080,
+                Port = _localPort,
                 UsernamePassword = userPass,
             };
 
             using var socksClient = new Socks5Client(option);
-            var connectTask = socksClient.ConnectAsync(IPAddress.Loopback, 12345);
+            var connectTask = socksClient.ConnectAsync(IPAddress.Loopback, _remotePort);
 
             using var server = await listener.AcceptTcpClientAsync();
             using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
@@ -221,7 +227,7 @@ namespace Abaddax.Socks5.Tests
 
             Assert.That(socksServer.AddressType, Is.EqualTo(AddressType.IPv4));
             Assert.That(socksServer.Address, Is.EqualTo("127.0.0.1"));
-            Assert.That(socksServer.Port, Is.EqualTo(12345));
+            Assert.That(socksServer.Port, Is.EqualTo(_remotePort));
 
             Assert.That(socksServer.LocalStream, Is.Not.Null);
             Assert.That(socksServer.RemoteStream, Is.Not.Null);

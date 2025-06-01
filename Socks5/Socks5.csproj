@@ -1,18 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>Abaddax.$(MSBuildProjectName.Replace(".net",""))</RootNamespace>
-    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
-    <PackageId>$(MSBuildProjectName)</PackageId>
+    <RootNamespace>Abaddax.$(MSBuildProjectName)</RootNamespace>
+    <AssemblyName>Abaddax.$(MSBuildProjectName)</AssemblyName>
+    <PackageId>Abaddax.$(MSBuildProjectName)</PackageId>
     <Version>0.1.0</Version>
     <Description>SOCKS5 Server/Client implementated in .NET</Description>
     <Authors>Abaddax</Authors>
     <Company></Company>
     <Copyright>Abaddax</Copyright>
-    <RepositoryUrl>https://github.com/Abaddax/$(PackageId)</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Abaddax/Socks5</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageLicenseUrl>https://github.com/Abaddax/$(PackageId)/blob/master/LICENSE</PackageLicenseUrl>
+    <PackageLicenseUrl>$(RepositoryUrl)/blob/master/LICENSE</PackageLicenseUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <IncludeSource>true</IncludeSource>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
@@ -23,9 +23,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
-
+    
   <ItemGroup>
-    <ProjectReference Include="..\..\Abaddax.Utilities\Abaddax.Utilities\Abaddax.Utilities.csproj" />
+    <PackageReference Include="Abaddax.Utilities" Version="0.1.2" />
   </ItemGroup>
 
 </Project>

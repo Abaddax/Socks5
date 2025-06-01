@@ -1,0 +1,60 @@
+# This workflow will build a .NET project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
+
+name: Publish Modbus.Protocol
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - "**/*.csproj"
+
+env:
+  CSPROJ_PATH: Socks5/Socks5.csproj
+
+jobs:
+  check_version:
+    
+    name: Check version
+    runs-on: ubuntu-latest
+    outputs:
+      version_changed: ${{ steps.version_check.outputs.version_changed }}
+      CSPROJ_PATH: ${{ steps.version_check.outputs.CSPROJ_PATH }}
+    
+    steps:
+    - uses: actions/checkout@v4
+      with: 
+        fetch-depth: 2
+    - name: Checkout HEAD
+      run: git checkout HEAD
+    - name: Check if version changed
+      id: version_check
+      run: |
+        echo "CSPROJ_PATH=$CSPROJ_PATH" >> "$GITHUB_OUTPUT"
+        if git diff -G "<Version>" -r HEAD^:$CSPROJ_PATH HEAD:$CSPROJ_PATH | grep "<Version>"; then
+            echo "version_changed=true" >> "$GITHUB_OUTPUT"
+        else
+            echo "version_changed=false" >> "$GITHUB_OUTPUT"
+        fi
+    - name: Stop if version did not changed
+      if: steps.version_check.outputs.version_changed == 'false'
+      run: echo "No version change detected. Skipping..." && exit 0
+
+  ci:
+    
+    needs: [check_version]
+    if: needs.check_version.outputs.version_changed == 'true'
+    uses: ./.github/workflows/ci.yml
+  
+  publish:
+  
+    needs: [check_version, ci]
+    if: needs.check_version.outputs.version_changed == 'true'
+    uses: ./.github/workflows/publish_nuget.yml
+    with:
+      CSPROJ_PATH: ${{ needs.check_version.outputs.CSPROJ_PATH }}
+      TAG_PREFIX: Modbus.Protocol-v
+    permissions:
+      contents: write
+    secrets:
+        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}

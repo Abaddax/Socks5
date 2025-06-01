@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <RootNamespace>Abaddax.$(MSBuildProjectName)</RootNamespace>
-    <AssemblyName>$(MSBuildProjectName)</AssemblyName>
-    <PackageId>$(MSBuildProjectName)</PackageId>
+    <AssemblyName>Abaddax.$(MSBuildProjectName)</AssemblyName>
+    <PackageId>Abaddax.$(MSBuildProjectName)</PackageId>
   </PropertyGroup>
     
   <PropertyGroup>
@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Socks5\Socks5.net.csproj" />
+    <ProjectReference Include="..\Socks5\Socks5.csproj" />
   </ItemGroup>
 
   <ItemGroup>
