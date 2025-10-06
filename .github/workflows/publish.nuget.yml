@@ -1,0 +1,18 @@
+name: Publish NuGet-Package
+
+on:
+  workflow_call:
+    secrets:
+      NUGET_API_KEY:
+        required: true
+  workflow_dispatch:
+
+jobs:  
+  publish_nuget:  
+    uses: Abaddax/workflows/.github/workflows/dotnet.publish_nuget.yml@master
+    with:
+      CSPROJ_PATH: Socks5/Socks5.csproj
+    permissions:
+      contents: write
+    secrets:
+      NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
