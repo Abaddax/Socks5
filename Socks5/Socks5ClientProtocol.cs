@@ -2,6 +2,7 @@
 using Abaddax.Socks5.Protocol.Enums;
 using Abaddax.Socks5.Protocol.Messages;
 using Abaddax.Socks5.Protocol.Messages.Parser;
+using Abaddax.Utilities.IO;
 using Abaddax.Utilities.Network;
 using System.Collections.Concurrent;
 
@@ -51,8 +52,38 @@ namespace Abaddax.Socks5
         public int Port { get; private set; } = 0;
 
 
-        public IEnumerable<Socks5ConnectionLog> ConnectionLog => _connectionLog?.ToArray() ?? Array.Empty<Socks5ConnectionLog>();
+        public IEnumerable<Socks5ConnectionLog> ConnectionLog
+        {
+            get
+            {
+                if (_connectionLog == null)
+                    yield break;
 
+                //Merge split messages if needed
+                Socks5ConnectionLog.ConnectionRole? lastRole = null;
+                byte[] data = Array.Empty<byte>();
+                foreach (var logEntry in _connectionLog)
+                {
+                    if (lastRole == null)
+                    {
+                        lastRole = logEntry.Role;
+                        data = logEntry.Data;
+                    }
+                    else if (lastRole != logEntry.Role)
+                    {
+                        yield return new Socks5ConnectionLog() { Role = lastRole.Value, Data = data };
+                        lastRole = logEntry.Role;
+                        data = logEntry.Data;
+                    }
+                    else
+                    {
+                        data = [.. data, .. logEntry.Data];
+                    }
+                }
+                if (lastRole != null)
+                    yield return new Socks5ConnectionLog() { Role = lastRole.Value, Data = data };
+            }
+        }
 
         public async Task ConnectAsync(AddressType type, string address, int port,
             CancellationToken token = default)
@@ -62,7 +93,29 @@ namespace Abaddax.Socks5
 
             try
             {
-                _connectionLog?.Clear();
+                var handshakeStream = _stream;
+                //Log data while handshake is going on
+                if (_connectionLog != null)
+                {
+                    _connectionLog.Clear();
+                    handshakeStream = new CallbackStream(_stream,
+                        (buffer, token) =>
+                        {
+                            return new(_stream.ReadAsync(buffer, token).AsTask().ContinueWith(x =>
+                            {
+                                if (_state != ClientState.Connected)
+                                    _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Server, Data = buffer.ToArray() });
+                                return x.Result;
+                            }, TaskContinuationOptions.NotOnFaulted));
+                        },
+                        (buffer, token) =>
+                        {
+                            if (_state != ClientState.Connected)
+                                _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Client, Data = buffer.ToArray() });
+                            return _stream.WriteAsync(buffer, token);
+                        });
+                }
+
                 _state = ClientState.Authentication;
 
                 AuthenticationMethod authMethod;
@@ -72,11 +125,11 @@ namespace Abaddax.Socks5
                     {
                         AuthenticationMethods = Options.AuthenticationHandler.SupportedMethods.ToHashSet().ToArray()
                     };
-                    await ((IStreamParser<AuthenticationRequest>)_parser).WriteAsync(_stream, authRequest, token);
+                    await ((IStreamParser<AuthenticationRequest>)_parser).WriteAsync(handshakeStream, authRequest, token);
                 }
                 //Read authentication-response
                 {
-                    var authResponse = await ((IStreamParser<AuthenticationResponse>)_parser).ReadAsync(_stream, token);
+                    var authResponse = await ((IStreamParser<AuthenticationResponse>)_parser).ReadAsync(handshakeStream, token);
                     if (authResponse.AuthenticationMethod == AuthenticationMethod.NoAcceptableMethods ||
                        !Options.AuthenticationHandler.SupportedMethods.Any(x => x == authResponse.AuthenticationMethod))
                         throw new Exception("Invalid authentication method");
@@ -84,7 +137,7 @@ namespace Abaddax.Socks5
                 }
 
                 //Handle authentication
-                _stream = await Options.AuthenticationHandler.AuthenticationHandler(_stream, authMethod, token);
+                _stream = await Options.AuthenticationHandler.AuthenticationHandler(/*Do not log authentication!*/_stream, authMethod, token);
 
                 _state = ClientState.Connection;
 
@@ -98,11 +151,11 @@ namespace Abaddax.Socks5
                         Address = address,
                         Port = port
                     };
-                    await ((IStreamParser<ConnectRequest>)_parser).WriteAsync(_stream, conRequest, token);
+                    await ((IStreamParser<ConnectRequest>)_parser).WriteAsync(handshakeStream, conRequest, token);
                 }
                 //Read connect-response
                 {
-                    var conResponse = await ((IStreamParser<ConnectResponse>)_parser).ReadAsync(_stream, token);
+                    var conResponse = await ((IStreamParser<ConnectResponse>)_parser).ReadAsync(handshakeStream, token);
                     if (conResponse.ConnectCode != ConnectCode.Succeeded)
                         throw new Exception($"Connect failed with code: {conResponse.ConnectCode}");
                     if (Options.ValidateReceivedEndpoint &&
