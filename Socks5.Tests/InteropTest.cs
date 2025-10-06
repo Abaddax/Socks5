@@ -8,6 +8,7 @@ using System.Net.Sockets;
 
 namespace Abaddax.Socks5.Tests
 {
+    [NonParallelizable]
     public class InteropTest
     {
         const int _localPort = 11080;

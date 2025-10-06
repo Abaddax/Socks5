@@ -6,6 +6,7 @@ using System.Security.Cryptography.X509Certificates;
 
 namespace Abaddax.Socks5.Tests
 {
+    [NonParallelizable]
     public class Socks5ClientTests
     {
         const int _localPort = 11080;
