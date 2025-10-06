@@ -44,13 +44,13 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
         {
             var message = new AuthenticationRequest();
 
-            using var header = BufferPool<byte>.Rent(2);
+            var header = new byte[2];
             await stream.ReadExactlyAsync(header, token);
             if (header[0] != 0x05)
                 throw new ArgumentException("Invalid socks-version");
             var methodsCount = header[1];
 
-            using var methods = BufferPool<byte>.Rent(methodsCount);
+            var methods = new byte[methodsCount];
             await stream.ReadExactlyAsync(methods, token);
 
             message.AuthenticationMethods = new AuthenticationMethod[methodsCount];
@@ -64,7 +64,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
         {
             var size = ((IBinaryParser<AuthenticationRequest>)this).GetMessageSize(message);
 
-            using var buffer = BufferPool<byte>.Rent(size);
+            var buffer = new byte[size];
 
             ((IBinaryParser<AuthenticationRequest>)this).Write(message, buffer);
 

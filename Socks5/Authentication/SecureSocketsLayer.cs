@@ -121,14 +121,14 @@ namespace Abaddax.Socks5.Authentication
             }
             public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken)
             {
-                Span<byte> header = stackalloc byte[4];
+                byte[] header = new byte[4];
                 if (_pendingBytes == 0)
                 {
                     //Read next header                        
-                    _innerStream.ReadExactly(header);
+                    await _innerStream.ReadExactlyAsync(header, cancellationToken);
                     SubnegotiationVersion = header[0];
                     TLSCommand = (TlsCommand)header[1];
-                    _pendingBytes = BinaryPrimitives.ReadUInt16BigEndian(header.Slice(2, 2));
+                    _pendingBytes = BinaryPrimitives.ReadUInt16BigEndian(header.AsSpan().Slice(2, 2));
                     if (TLSCommand == TlsCommand.ClosingHandshake)
                     {
                         Close();
@@ -136,7 +136,7 @@ namespace Abaddax.Socks5.Authentication
                     }
                 }
 
-                var read = await _innerStream.ReadAsync(buffer.Slice(0, Math.Min(buffer.Length, _pendingBytes)));
+                var read = await _innerStream.ReadAsync(buffer.Slice(0, Math.Min(buffer.Length, _pendingBytes)), cancellationToken);
                 if (read <= 0)
                     return -1;
                 _pendingBytes -= read;
@@ -150,35 +150,29 @@ namespace Abaddax.Socks5.Authentication
             public override void Write(ReadOnlySpan<byte> buffer)
             {
                 Span<byte> header = stackalloc byte[4];
-                int write = buffer.Length;
-                int offset = 0;
-                while (write > 0)
+                while (buffer.Length > 0)
                 {
-                    int count = Math.Min(write, short.MaxValue);
+                    int count = Math.Min(buffer.Length, short.MaxValue);
                     header[0] = SubnegotiationVersion;
                     header[1] = (byte)TLSCommand;
                     BinaryPrimitives.WriteUInt16BigEndian(header.Slice(2, 2), (ushort)count);
                     _innerStream.Write(header);
-                    _innerStream.Write(buffer.Slice(offset, count));
-                    write -= count;
-                    offset += count;
+                    _innerStream.Write(buffer.Slice(buffer.Length, count));
+                    buffer = buffer.Slice(count);
                 }
             }
             public override async ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken)
             {
-                int write = buffer.Length;
-                int offset = 0;
-                while (write > 0)
+                byte[] header = new byte[4];
+                while (buffer.Length > 0)
                 {
-                    Span<byte> header = stackalloc byte[4];
-                    int count = Math.Min(write, short.MaxValue);
+                    int count = Math.Min(buffer.Length, short.MaxValue);
                     header[0] = SubnegotiationVersion;
                     header[1] = (byte)TLSCommand;
-                    BinaryPrimitives.WriteUInt16BigEndian(header.Slice(2, 2), (ushort)count);
-                    _innerStream.Write(header);
-                    await _innerStream.WriteAsync(buffer.Slice(offset, count), cancellationToken);
-                    write -= count;
-                    offset += count;
+                    BinaryPrimitives.WriteUInt16BigEndian(header.AsSpan().Slice(2, 2), (ushort)count);
+                    await _innerStream.WriteAsync(header, cancellationToken);
+                    await _innerStream.WriteAsync(buffer.Slice(0, count), cancellationToken);
+                    buffer = buffer.Slice(count);
                 }
             }
 

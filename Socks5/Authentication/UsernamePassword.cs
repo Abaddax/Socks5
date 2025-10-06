@@ -1,5 +1,4 @@
 ﻿using Abaddax.Socks5.Protocol.Enums;
-using Abaddax.Utilities.Buffers;
 using Abaddax.Utilities.Network;
 using System.Text;
 
@@ -109,7 +108,7 @@ namespace Abaddax.Socks5.Authentication
         {
             var message = new UserAuthenticationRequest();
 
-            using var header = BufferPool<byte>.Rent(2);
+            var header = new byte[2];
             await stream.ReadExactlyAsync(header, token);
 
             message.SubnegotiationVersion = header[0];
@@ -117,7 +116,7 @@ namespace Abaddax.Socks5.Authentication
                 throw new Exception("Invalid subnegotiation-version");
 
             var usernameLength = header[1];
-            using var usernameBuffer = BufferPool<byte>.Rent(usernameLength);
+            var usernameBuffer = new byte[usernameLength];
             await stream.ReadExactlyAsync(usernameBuffer, token);
 
             message.Username = Encoding.UTF8.GetString(usernameBuffer);
@@ -126,7 +125,7 @@ namespace Abaddax.Socks5.Authentication
             if (passwordLength < byte.MinValue || passwordLength > byte.MaxValue)
                 throw new EndOfStreamException();
 
-            using var passwordBuffer = BufferPool<byte>.Rent(passwordLength);
+            var passwordBuffer = new byte[passwordLength];
             await stream.ReadExactlyAsync(passwordBuffer, token);
 
             message.Password = Encoding.UTF8.GetString(passwordBuffer);
@@ -138,14 +137,14 @@ namespace Abaddax.Socks5.Authentication
             var userNameLength = Encoding.UTF8.GetByteCount(message.Username);
             var passwordLength = Encoding.UTF8.GetByteCount(message.Password);
 
-            using var buffer = BufferPool<byte>.Rent(3 + userNameLength + passwordLength);
+            var buffer = new byte[3 + userNameLength + passwordLength];
 
             buffer[0] = message.SubnegotiationVersion;
             buffer[1] = (byte)userNameLength;
 
-            Encoding.UTF8.GetBytes(message.Username, buffer.Span.Slice(2, userNameLength));
+            Encoding.UTF8.GetBytes(message.Username, buffer.AsSpan(2, userNameLength));
             buffer[2 + userNameLength] = (byte)passwordLength;
-            Encoding.UTF8.GetBytes(message.Password, buffer.Span.Slice(3 + userNameLength, passwordLength));
+            Encoding.UTF8.GetBytes(message.Password, buffer.AsSpan(3 + userNameLength, passwordLength));
 
             await stream.WriteAsync(buffer, token);
         }
@@ -159,7 +158,7 @@ namespace Abaddax.Socks5.Authentication
         {
             var message = new UserAuthenticationResponse();
 
-            using var header = BufferPool<byte>.Rent(2);
+            var header = new byte[2];
             await stream.ReadExactlyAsync(header, token);
 
             message.SubnegotiationVersion = header[0];
@@ -172,7 +171,7 @@ namespace Abaddax.Socks5.Authentication
         }
         public async Task WriteAsync(Stream stream, UserAuthenticationResponse message, CancellationToken token)
         {
-            using var buffer = BufferPool<byte>.Rent(2);
+            var buffer = new byte[2];
             buffer[0] = message.SubnegotiationVersion;
             buffer[1] = message.Status;
 

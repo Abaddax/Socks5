@@ -2,7 +2,7 @@
 
 namespace Abaddax.Socks5.Protocol.Messages
 {
-    internal struct AuthenticationRequest
+    internal record struct AuthenticationRequest
     {
         public AuthenticationMethod[] AuthenticationMethods;
     }

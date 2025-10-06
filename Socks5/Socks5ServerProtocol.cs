@@ -177,13 +177,10 @@ namespace Abaddax.Socks5
                 {
                     _remoteStream?.Dispose();
                     _stream?.Dispose();
+                    _proxy?.Dispose();
                 }
                 _disposedValue = true;
             }
-        }
-        ~Socks5ServerProtocol()
-        {
-            Dispose(false);
         }
         public void Dispose()
         {

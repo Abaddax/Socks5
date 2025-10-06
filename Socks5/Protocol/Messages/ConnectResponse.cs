@@ -2,7 +2,7 @@
 
 namespace Abaddax.Socks5.Protocol.Messages
 {
-    internal struct ConnectResponse
+    internal record struct ConnectResponse
     {
         public ConnectCode ConnectCode;
         public AddressType AddressType;

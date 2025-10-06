@@ -142,10 +142,6 @@ namespace Abaddax.Socks5
                 _disposedValue = true;
             }
         }
-        ~Socks5ClientProtocol()
-        {
-            Dispose(false);
-        }
         public void Dispose()
         {
             Dispose(true);

@@ -80,7 +80,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
         {
             var message = new ConnectRequest();
 
-            using var header = BufferPool<byte>.Rent(4);
+            var header = new byte[4];
             await stream.ReadExactlyAsync(header, token);
             if (header[0] != 0x05)
                 throw new ArgumentException("Invalid socks-version");
@@ -92,11 +92,11 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
             {
                 case AddressType.IPv4:
                     {
-                        using var packet = BufferPool<byte>.Rent(4 + 2);
+                        var packet = new byte[4 + 2];
                         await stream.ReadExactlyAsync(packet, token);
-                        var address = new IPAddress(packet.Span.Slice(0, 4));
+                        var address = new IPAddress(packet.AsSpan(0, 4));
                         message.Address = address.ToString();
-                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.Span.Slice(4, 2));
+                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(4, 2));
                         break;
                     }
                 case AddressType.DomainName:
@@ -104,19 +104,19 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
                         var length = stream.ReadByte();
                         if (length < byte.MinValue || length > byte.MaxValue)
                             throw new EndOfStreamException();
-                        using var packet = BufferPool<byte>.Rent(length + 2);
+                        var packet = new byte[length + 2];
                         await stream.ReadExactlyAsync(packet, token);
-                        message.Address = Encoding.UTF8.GetString(packet.Span.Slice(0, length));
-                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.Span.Slice(length, 2));
+                        message.Address = Encoding.UTF8.GetString(packet.AsSpan(0, length));
+                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(length, 2));
                         break;
                     }
                 case AddressType.IPv6:
                     {
-                        using var packet = BufferPool<byte>.Rent(16 + 2);
+                        var packet = new byte[16 + 2];
                         await stream.ReadExactlyAsync(packet, token);
-                        var address = new IPAddress(packet.Span.Slice(0, 16));
+                        var address = new IPAddress(packet.AsSpan(0, 16));
                         message.Address = address.ToString();
-                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.Span.Slice(16, 2));
+                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(16, 2));
                         break;
                     }
                 default:
@@ -128,7 +128,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
         {
             var size = ((IBinaryParser<ConnectRequest>)this).GetMessageSize(message);
 
-            using var buffer = BufferPool<byte>.Rent(size);
+            var buffer = new byte[size];
 
             ((IBinaryParser<ConnectRequest>)this).Write(message, buffer);
 
