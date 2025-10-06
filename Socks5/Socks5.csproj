@@ -4,7 +4,7 @@
     <RootNamespace>Abaddax.$(MSBuildProjectName)</RootNamespace>
     <AssemblyName>Abaddax.$(MSBuildProjectName)</AssemblyName>
     <PackageId>Abaddax.$(MSBuildProjectName)</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Description>SOCKS5 Server/Client implementated in .NET</Description>
     <Authors>Abaddax</Authors>
     <Company></Company>
