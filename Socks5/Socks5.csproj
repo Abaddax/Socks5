@@ -9,7 +9,7 @@
     <Authors>Abaddax</Authors>
     <Company></Company>
     <Copyright>Abaddax</Copyright>
-    <RepositoryUrl>https://github.com/Abaddax/Socks5</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Abaddax/Socks5.git</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageLicenseUrl>$(RepositoryUrl)/blob/master/LICENSE</PackageLicenseUrl>
@@ -27,6 +27,10 @@
     
   <ItemGroup>
     <PackageReference Include="Abaddax.Utilities" Version="0.1.2" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 
 </Project>

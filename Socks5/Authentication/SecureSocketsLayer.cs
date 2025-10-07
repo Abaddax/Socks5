@@ -157,7 +157,7 @@ namespace Abaddax.Socks5.Authentication
                     header[1] = (byte)TLSCommand;
                     BinaryPrimitives.WriteUInt16BigEndian(header.Slice(2, 2), (ushort)count);
                     _innerStream.Write(header);
-                    _innerStream.Write(buffer.Slice(buffer.Length, count));
+                    _innerStream.Write(buffer.Slice(0, count));
                     buffer = buffer.Slice(count);
                 }
             }
