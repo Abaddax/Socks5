@@ -18,7 +18,6 @@ namespace Abaddax.Socks5
             Connected = 3
         }
 
-        private readonly Socks5Parser _parser = new();
         private readonly ConcurrentQueue<Socks5ConnectionLog>? _connectionLog;
 
         private Stream _stream;
@@ -111,7 +110,7 @@ namespace Abaddax.Socks5
                 if (_connectionLog != null)
                 {
                     _connectionLog.Clear();
-                    handshakeStream = new CallbackStream(_stream,
+                    handshakeStream = new CallbackStream(
                         (buffer, token) =>
                         {
                             return new(_stream.ReadAsync(buffer, token).AsTask().ContinueWith(x =>
@@ -134,7 +133,7 @@ namespace Abaddax.Socks5
                 AuthenticationMethod authMethod;
                 //Read authentication-request
                 {
-                    var authRequest = await ((IStreamParser<AuthenticationRequest>)_parser).ReadAsync(handshakeStream, token);
+                    var authRequest = await AuthenticationRequestParser.Shared.ReadAsync(handshakeStream, token);
                     authMethod = await Options.AuthenticationHandler.SelectAuthenticationMethod(authRequest.AuthenticationMethods, token) ?? AuthenticationMethod.NoAcceptableMethods;
                 }
                 //Send authentication-response
@@ -143,7 +142,7 @@ namespace Abaddax.Socks5
                     {
                         AuthenticationMethod = authMethod
                     };
-                    await ((IStreamParser<AuthenticationResponse>)_parser).WriteAsync(handshakeStream, authResponse, token);
+                    await AuthenticationResponseParser.Shared.WriteAsync(handshakeStream, authResponse, token);
                     if (authResponse.AuthenticationMethod == AuthenticationMethod.NoAcceptableMethods)
                         throw new Exception("Invalid authentication method");
                 }
@@ -156,7 +155,7 @@ namespace Abaddax.Socks5
                 ConnectCode code;
                 //Read connect-request
                 {
-                    var conRequest = await ((IStreamParser<ConnectRequest>)_parser).ReadAsync(handshakeStream, token);
+                    var conRequest = await ConnectRequestParser.Shared.ReadAsync(handshakeStream, token);
 
                     AddressType = conRequest.AddressType;
                     Address = conRequest.Address;
@@ -180,7 +179,7 @@ namespace Abaddax.Socks5
                         Address = Address,
                         Port = Port,
                     };
-                    await ((IStreamParser<ConnectResponse>)_parser).WriteAsync(handshakeStream, conResponse, token);
+                    await ConnectResponseParser.Shared.WriteAsync(handshakeStream, conResponse, token);
                     if (code != ConnectCode.Succeeded)
                     {
                         _stream.Close();

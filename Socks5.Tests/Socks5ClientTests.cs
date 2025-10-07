@@ -281,19 +281,39 @@ namespace Abaddax.Socks5.Tests
             var receiveBuffer = new byte[100000];
             var sendBuffer = new byte[receiveBuffer.Length];
 
-            Random.Shared.NextBytes(sendBuffer);
+            //Async functions
+            {
+                Random.Shared.NextBytes(sendBuffer);
 
-            await server.LocalStream.WriteAsync(sendBuffer);
-            await client.Stream.ReadExactlyAsync(receiveBuffer);
+                await server.LocalStream.WriteAsync(sendBuffer);
+                await client.Stream.ReadExactlyAsync(receiveBuffer);
 
-            Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+                Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
 
-            Random.Shared.NextBytes(sendBuffer);
+                Random.Shared.NextBytes(sendBuffer);
 
-            await client.Stream.WriteAsync(sendBuffer);
-            await server.LocalStream.ReadExactlyAsync(receiveBuffer);
+                await client.Stream.WriteAsync(sendBuffer);
+                await server.LocalStream.ReadExactlyAsync(receiveBuffer);
 
-            Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+                Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+            }
+
+            //Sync functions
+            {
+                Random.Shared.NextBytes(sendBuffer);
+
+                server.LocalStream.Write(sendBuffer);
+                client.Stream.ReadExactly(receiveBuffer);
+
+                Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+
+                Random.Shared.NextBytes(sendBuffer);
+
+                client.Stream.Write(sendBuffer);
+                server.LocalStream.ReadExactly(receiveBuffer);
+
+                Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+            }
         }
         #endregion
     }

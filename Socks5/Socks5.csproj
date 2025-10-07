@@ -4,7 +4,7 @@
     <RootNamespace>Abaddax.$(MSBuildProjectName)</RootNamespace>
     <AssemblyName>Abaddax.$(MSBuildProjectName)</AssemblyName>
     <PackageId>Abaddax.$(MSBuildProjectName)</PackageId>
-    <Version>0.1.1</Version>
+    <Version>0.1.2</Version>
     <Description>SOCKS5 Server/Client implementated in .NET</Description>
     <Authors>Abaddax</Authors>
     <Company></Company>
@@ -26,7 +26,7 @@
   </PropertyGroup>
     
   <ItemGroup>
-    <PackageReference Include="Abaddax.Utilities" Version="0.1.2" />
+    <PackageReference Include="Abaddax.Utilities" Version="0.1.3" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

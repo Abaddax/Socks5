@@ -39,9 +39,9 @@ namespace Abaddax.Socks5.Tests
             SimpleSocks5Server server = new SimpleSocks5Server(serverEndpoint, null);
 
             var clientOptions = new Socks5ClientOptions()
-                {
-                    ValidateReceivedEndpoint = false
-                }
+            {
+                ValidateReceivedEndpoint = false
+            }
                 .WithConnectMethod(ConnectMethod.TCPConnect)
                 .WithNoAuthenticationRequired();
 
@@ -83,9 +83,9 @@ namespace Abaddax.Socks5.Tests
             SimpleSocks5Server server = new SimpleSocks5Server(serverEndpoint, userPass);
 
             var clientOptions = new Socks5ClientOptions()
-                {
-                    ValidateReceivedEndpoint = false
-                }
+            {
+                ValidateReceivedEndpoint = false
+            }
                 .WithConnectMethod(ConnectMethod.TCPConnect)
                 .WithUsernamePasswordAuthentication("user123", "password123");
 

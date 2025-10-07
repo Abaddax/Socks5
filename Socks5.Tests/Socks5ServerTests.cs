@@ -404,19 +404,39 @@ namespace Abaddax.Socks5.Tests
             var proxyTask = Task.Run(() => server.ProxyAsync(tokenSource.Token, leaveOpen: true));
             try
             {
-                //Remote-Peer -> (SocksServer.RemoteSteam <-> SocksServer.LocalSteam) -> Socks-Client
-                await remotePeer.WriteAsync(sendBuffer);
-                await client.Stream.ReadExactlyAsync(receiveBuffer);
+                //Async functions
+                {
+                    //Remote-Peer -> (SocksServer.RemoteSteam <-> SocksServer.LocalSteam) -> Socks-Client
+                    await remotePeer.WriteAsync(sendBuffer);
+                    await client.Stream.ReadExactlyAsync(receiveBuffer);
 
-                Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+                    Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
 
-                Random.Shared.NextBytes(sendBuffer);
+                    Random.Shared.NextBytes(sendBuffer);
 
-                //Remote-Peer <- (SocksServer.RemoteSteam <-> SocksServer.LocalSteam) <- Socks-Client
-                await client.Stream.WriteAsync(sendBuffer);
-                await remotePeer.ReadExactlyAsync(receiveBuffer);
+                    //Remote-Peer <- (SocksServer.RemoteSteam <-> SocksServer.LocalSteam) <- Socks-Client
+                    await client.Stream.WriteAsync(sendBuffer);
+                    await remotePeer.ReadExactlyAsync(receiveBuffer);
 
-                Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+                    Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+                }
+
+                //Sync functions
+                {
+                    //Remote-Peer -> (SocksServer.RemoteSteam <-> SocksServer.LocalSteam) -> Socks-Client
+                    remotePeer.Write(sendBuffer);
+                    client.Stream.ReadExactly(receiveBuffer);
+
+                    Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+
+                    Random.Shared.NextBytes(sendBuffer);
+
+                    //Remote-Peer <- (SocksServer.RemoteSteam <-> SocksServer.LocalSteam) <- Socks-Client
+                    client.Stream.Write(sendBuffer);
+                    remotePeer.ReadExactly(receiveBuffer);
+
+                    Assert.That(sendBuffer, Is.EquivalentTo(receiveBuffer));
+                }
             }
             finally
             {

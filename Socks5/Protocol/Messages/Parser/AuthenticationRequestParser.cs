@@ -1,31 +1,21 @@
 ﻿using Abaddax.Socks5.Protocol.Enums;
-using Abaddax.Utilities.Buffers;
-using Abaddax.Utilities.Network;
 
 namespace Abaddax.Socks5.Protocol.Messages.Parser
 {
-    internal partial class Socks5Parser :
-        IBinaryParser<AuthenticationRequest>,
-        IStreamParser<AuthenticationRequest>
+    internal sealed class AuthenticationRequestParser : Socks5ParserBase<AuthenticationRequest>
     {
+        public static AuthenticationRequestParser Shared { get; } = new();
 
-        #region IBinaryParser<Socks5AuthenticationRequest>
-        AuthenticationRequest IBinaryParser<AuthenticationRequest>.Read(ReadOnlySpan<byte> packet)
-        {
-            using var ms = new MemoryStream();
-            ms.Write(packet);
-            return ((IStreamParser<AuthenticationRequest>)this).ReadAsync(ms, default).Result;
-        }
-        int IBinaryParser<AuthenticationRequest>.GetMessageSize(AuthenticationRequest message)
+        public override int GetMessageSize(AuthenticationRequest message)
         {
             if (message.AuthenticationMethods == null)
                 throw new ArgumentNullException(nameof(message.AuthenticationMethods));
 
             return 2 + message.AuthenticationMethods.Length;
         }
-        int IBinaryParser<AuthenticationRequest>.Write(AuthenticationRequest message, Span<byte> destination)
+        public override int Write(AuthenticationRequest message, Span<byte> destination)
         {
-            var size = ((IBinaryParser<AuthenticationRequest>)this).GetMessageSize(message);
+            var size = GetMessageSize(message);
             if (destination.Length < size)
                 throw new ArgumentOutOfRangeException(nameof(destination));
 
@@ -37,10 +27,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
             }
             return size;
         }
-        #endregion
-
-        #region IStreamParser<Socks5AuthenticationRequest>
-        async Task<AuthenticationRequest> IStreamParser<AuthenticationRequest>.ReadAsync(Stream stream, CancellationToken token)
+        public override async Task<AuthenticationRequest> ReadAsync(Stream stream, CancellationToken token)
         {
             var message = new AuthenticationRequest();
 
@@ -60,18 +47,5 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
             }
             return message;
         }
-        public async Task WriteAsync(Stream stream, AuthenticationRequest message, CancellationToken token)
-        {
-            var size = ((IBinaryParser<AuthenticationRequest>)this).GetMessageSize(message);
-
-            var buffer = new byte[size];
-
-            ((IBinaryParser<AuthenticationRequest>)this).Write(message, buffer);
-
-            await stream.WriteAsync(buffer, token);
-            return;
-        }
-        #endregion
-
     }
 }
