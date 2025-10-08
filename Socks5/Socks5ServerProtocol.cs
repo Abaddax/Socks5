@@ -150,6 +150,10 @@ namespace Abaddax.Socks5
                 //Handle authentication
                 _stream = await Options.AuthenticationHandler.AuthenticationHandler(/*Do not log authentication!*/_stream, authMethod, token);
 
+                //Continue with current stream
+                if (_connectionLog == null)
+                    handshakeStream = _stream;
+
                 _state = ServerState.Connection;
 
                 ConnectCode code;
@@ -164,7 +168,7 @@ namespace Abaddax.Socks5
                     {
                         (code, _remoteStream) = await Options.ConnectHandler.Invoke(conRequest.ConnectMethod, conRequest.AddressType, conRequest.Address, conRequest.Port, token);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         code = ConnectCode.SocksFailure;
                         _remoteStream = null;
@@ -189,7 +193,7 @@ namespace Abaddax.Socks5
 
                 _state = ServerState.Connected;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _stream.Close();
                 throw;

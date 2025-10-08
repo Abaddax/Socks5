@@ -137,9 +137,12 @@ namespace Abaddax.Socks5
                 //Handle authentication
                 _stream = await Options.AuthenticationHandler.AuthenticationHandler(/*Do not log authentication!*/_stream, authMethod, token);
 
+                //Continue with current stream
+                if (_connectionLog == null)
+                    handshakeStream = _stream;
+
                 _state = ClientState.Connection;
 
-                int responseSize;
                 //Send connect-request
                 {
                     var conRequest = new ConnectRequest()
@@ -169,7 +172,7 @@ namespace Abaddax.Socks5
 
                 _state = ClientState.Connected;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _stream.Close();
                 throw;
