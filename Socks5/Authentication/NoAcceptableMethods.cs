@@ -6,11 +6,11 @@ namespace Abaddax.Socks5.Authentication
     {
         public IEnumerable<AuthenticationMethod> SupportedMethods { get; } = [AuthenticationMethod.NoAcceptableMethods];
 
-        public async Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken token)
+        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
-            return AuthenticationMethod.NoAcceptableMethods;
+            return Task.FromResult<AuthenticationMethod?>(AuthenticationMethod.NoAcceptableMethods);
         }
-        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken token)
+        public Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
         }

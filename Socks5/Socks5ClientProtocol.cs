@@ -84,7 +84,7 @@ namespace Abaddax.Socks5
         }
 
         public async Task ConnectAsync(AddressType type, string address, int port,
-            CancellationToken token = default)
+            CancellationToken cancellationToken = default)
         {
             if (_state != ClientState.None)
                 throw new InvalidOperationException("This method can only be called once");
@@ -97,20 +97,20 @@ namespace Abaddax.Socks5
                 {
                     _connectionLog.Clear();
                     handshakeStream = new CallbackStream(
-                        (buffer, token) =>
+                        (buffer, cancellationToken) =>
                         {
-                            return new(_stream.ReadAsync(buffer, token).AsTask().ContinueWith(x =>
+                            return new(_stream.ReadAsync(buffer, cancellationToken).AsTask().ContinueWith(x =>
                             {
                                 if (_state != ClientState.Connected)
                                     _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Server, Data = buffer.ToArray() });
                                 return x.Result;
                             }, TaskContinuationOptions.NotOnFaulted));
                         },
-                        (buffer, token) =>
+                        (buffer, cancellationToken) =>
                         {
                             if (_state != ClientState.Connected)
                                 _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Client, Data = buffer.ToArray() });
-                            return _stream.WriteAsync(buffer, token);
+                            return _stream.WriteAsync(buffer, cancellationToken);
                         });
                 }
 
@@ -123,11 +123,11 @@ namespace Abaddax.Socks5
                     {
                         AuthenticationMethods = Options.AuthenticationHandler.SupportedMethods.ToHashSet().ToArray()
                     };
-                    await AuthenticationRequestParser.Shared.WriteAsync(handshakeStream, authRequest, token);
+                    await AuthenticationRequestParser.Shared.WriteAsync(handshakeStream, authRequest, cancellationToken);
                 }
                 //Read authentication-response
                 {
-                    var authResponse = await AuthenticationResponseParser.Shared.ReadAsync(handshakeStream, token);
+                    var authResponse = await AuthenticationResponseParser.Shared.ReadAsync(handshakeStream, cancellationToken);
                     if (authResponse.AuthenticationMethod == AuthenticationMethod.NoAcceptableMethods ||
                        !Options.AuthenticationHandler.SupportedMethods.Any(x => x == authResponse.AuthenticationMethod))
                         throw new Exception("Invalid authentication method");
@@ -135,7 +135,7 @@ namespace Abaddax.Socks5
                 }
 
                 //Handle authentication
-                _stream = await Options.AuthenticationHandler.AuthenticationHandler(/*Do not log authentication!*/_stream, authMethod, token);
+                _stream = await Options.AuthenticationHandler.AuthenticationHandler(/*Do not log authentication!*/_stream, authMethod, cancellationToken);
 
                 //Continue with current stream
                 if (_connectionLog == null)
@@ -152,11 +152,11 @@ namespace Abaddax.Socks5
                         Address = address,
                         Port = port
                     };
-                    await ConnectRequestParser.Shared.WriteAsync(handshakeStream, conRequest, token);
+                    await ConnectRequestParser.Shared.WriteAsync(handshakeStream, conRequest, cancellationToken);
                 }
                 //Read connect-response
                 {
-                    var conResponse = await ConnectResponseParser.Shared.ReadAsync(handshakeStream, token);
+                    var conResponse = await ConnectResponseParser.Shared.ReadAsync(handshakeStream, cancellationToken);
                     if (conResponse.ConnectCode != ConnectCode.Succeeded)
                         throw new Exception($"Connect failed with code: {conResponse.ConnectCode}");
                     if (Options.ValidateReceivedEndpoint &&

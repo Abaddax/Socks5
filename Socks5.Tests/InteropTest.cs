@@ -122,7 +122,7 @@ namespace Abaddax.Socks5.Tests
 
             var serverOptions = new Socks5ServerOptions()
                 .WithNoAuthenticationRequired()
-                .WithConnectionHandler(async (method, type, address, port, token) =>
+                .WithConnectionHandler(async (method, type, address, port, cancellationToken) =>
                 {
                     if (method != ConnectMethod.TCPConnect)
                         return (ConnectCode.NotAllowedByRuleset, null);
@@ -130,8 +130,9 @@ namespace Abaddax.Socks5.Tests
                     if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                         return (ConnectCode.ConnectionRefused, null);
 
-                    var serverTask = _remoteListener.AcceptTcpClientAsync();
-                    var connection = new TcpClient(address, port);
+                    var serverTask = _remoteListener.AcceptTcpClientAsync(cancellationToken);
+                    var connection = new TcpClient();
+                    await connection.ConnectAsync(address, port, cancellationToken);
                     _remoteClient = await serverTask;
 
                     return (ConnectCode.Succeeded, connection.GetStream());
@@ -183,13 +184,13 @@ namespace Abaddax.Socks5.Tests
             listener.Start();
 
             var serverOptions = new Socks5ServerOptions()
-                .WithUsernamePasswordAuthentication(async (username, password, token) =>
+                .WithUsernamePasswordAuthentication(async (username, password, _) =>
                 {
                     if (username == "user123" && password == "password123")
                         return true;
                     return false;
                 })
-                .WithConnectionHandler(async (method, type, address, port, token) =>
+                .WithConnectionHandler(async (method, type, address, port, cancellationToken) =>
                 {
                     if (method != ConnectMethod.TCPConnect)
                         return (ConnectCode.NotAllowedByRuleset, null);
@@ -197,8 +198,9 @@ namespace Abaddax.Socks5.Tests
                     if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                         return (ConnectCode.ConnectionRefused, null);
 
-                    var serverTask = _remoteListener.AcceptTcpClientAsync();
-                    var connection = new TcpClient(address, port);
+                    var serverTask = _remoteListener.AcceptTcpClientAsync(cancellationToken);
+                    var connection = new TcpClient();
+                    await connection.ConnectAsync(address, port, cancellationToken);
                     _remoteClient = await serverTask;
 
                     return (ConnectCode.Succeeded, connection.GetStream());

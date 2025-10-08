@@ -4,30 +4,30 @@ using System.Buffers.Binary;
 
 namespace Abaddax.Socks5.Authentication
 {
-    public delegate Task<Stream> TlsHandshakeHandler(Stream stream, CancellationToken token);
+    public delegate Task<Stream> TlsHandshakeHandler(Stream stream, CancellationToken cancellationToken);
 
     internal sealed class SecureSocketsLayer : IAuthenticationHandler
     {
         private readonly TlsHandshakeHandler _handshakeHandler;
         private readonly byte[]? _specificOptions;
-        private readonly bool _server;
+        private readonly bool _isServer;
 
         public IEnumerable<AuthenticationMethod> SupportedMethods { get; } = [AuthenticationMethod.SecureSocketsLayer];
 
-        public SecureSocketsLayer(TlsHandshakeHandler handshakeHandler, byte[]? specificOptions = null, bool server = false)
+        public SecureSocketsLayer(TlsHandshakeHandler handshakeHandler, byte[]? specificOptions = null, bool isServer = false)
         {
             _handshakeHandler = handshakeHandler ?? throw new ArgumentNullException(nameof(handshakeHandler));
             _specificOptions = specificOptions;
-            _server = server;
+            _isServer = isServer;
         }
 
-        public async Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken token)
+        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             if (methods?.Any(x => x == AuthenticationMethod.SecureSocketsLayer) ?? false)
-                return AuthenticationMethod.SecureSocketsLayer;
-            return null;
+                return Task.FromResult<AuthenticationMethod?>(AuthenticationMethod.SecureSocketsLayer);
+            return Task.FromResult<AuthenticationMethod?>(null);
         }
-        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken token)
+        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             if (method != AuthenticationMethod.SecureSocketsLayer)
                 throw new NotSupportedException();
@@ -39,21 +39,21 @@ namespace Abaddax.Socks5.Authentication
                 TLSCommand = Socks5CryptoStream.TlsCommand.InitalHandshake
             };
 
-            stream = await _handshakeHandler.Invoke(socksStream, token);
+            stream = await _handshakeHandler.Invoke(socksStream, cancellationToken);
 
             //Option negotiation
             if (_specificOptions != null)
             {
                 socksStream.TLSCommand = Socks5CryptoStream.TlsCommand.OptionNegotiation;
-                if (_server)
+                if (_isServer)
                 {
-                    await stream.ReadExactlyAsync(_specificOptions, token);
-                    await stream.WriteAsync(_specificOptions, token);
+                    await stream.ReadExactlyAsync(_specificOptions, cancellationToken);
+                    await stream.WriteAsync(_specificOptions, cancellationToken);
                 }
                 else
                 {
-                    await stream.WriteAsync(_specificOptions, token);
-                    await stream.ReadExactlyAsync(_specificOptions, token);
+                    await stream.WriteAsync(_specificOptions, cancellationToken);
+                    await stream.ReadExactlyAsync(_specificOptions, cancellationToken);
                 }
             }
 
@@ -211,15 +211,15 @@ namespace Abaddax.Socks5.Authentication
 
         public SecureSocketsLayerServer(TlsHandshakeHandler handshakeHandler, byte[]? specificOptions = null)
         {
-            _ssl = new SecureSocketsLayer(handshakeHandler, specificOptions, server: true);
+            _ssl = new SecureSocketsLayer(handshakeHandler, specificOptions, isServer: true);
         }
 
         public IEnumerable<AuthenticationMethod> SupportedMethods =>
             _ssl.SupportedMethods;
-        public Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken token) =>
-            _ssl.AuthenticationHandler(stream, method, token);
-        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken token) =>
-            _ssl.SelectAuthenticationMethod(methods, token);
+        public Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken) =>
+            _ssl.AuthenticationHandler(stream, method, cancellationToken);
+        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken) =>
+            _ssl.SelectAuthenticationMethod(methods, cancellationToken);
     }
 
     public sealed class SecureSocketsLayerClient : IAuthenticationHandler
@@ -228,15 +228,15 @@ namespace Abaddax.Socks5.Authentication
 
         public SecureSocketsLayerClient(TlsHandshakeHandler handshakeHandler, byte[]? specificOptions = null)
         {
-            _ssl = new SecureSocketsLayer(handshakeHandler, specificOptions, server: false);
+            _ssl = new SecureSocketsLayer(handshakeHandler, specificOptions, isServer: false);
         }
 
         public IEnumerable<AuthenticationMethod> SupportedMethods =>
             _ssl.SupportedMethods;
-        public Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken token) =>
-            _ssl.AuthenticationHandler(stream, method, token);
-        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken token) =>
-            _ssl.SelectAuthenticationMethod(methods, token);
+        public Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken) =>
+            _ssl.AuthenticationHandler(stream, method, cancellationToken);
+        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken) =>
+            _ssl.SelectAuthenticationMethod(methods, cancellationToken);
     }
 
 }

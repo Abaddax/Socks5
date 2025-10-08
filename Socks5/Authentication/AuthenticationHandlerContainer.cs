@@ -15,17 +15,17 @@ namespace Abaddax.Socks5.Authentication
         #region IAuthenticationHandler
         IEnumerable<AuthenticationMethod> IAuthenticationHandler.SupportedMethods =>
            _authenticationHandler.SelectMany(x => x.SupportedMethods);
-        Task<AuthenticationMethod?> IAuthenticationHandler.SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken token)
+        Task<AuthenticationMethod?> IAuthenticationHandler.SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             var handler = _authenticationHandler.FirstOrDefault(x => x.SupportedMethods.Intersect(methods).Any());
             if (handler == null)
                 return Task.FromResult<AuthenticationMethod?>(null);
-            return handler.SelectAuthenticationMethod(methods, token);
+            return handler.SelectAuthenticationMethod(methods, cancellationToken);
         }
-        Task<Stream> IAuthenticationHandler.AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken token)
+        Task<Stream> IAuthenticationHandler.AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             var handler = _authenticationHandler.First(x => x.SupportedMethods.Contains(method));
-            return handler.AuthenticationHandler(stream, method, token);
+            return handler.AuthenticationHandler(stream, method, cancellationToken);
         }
         #endregion
 

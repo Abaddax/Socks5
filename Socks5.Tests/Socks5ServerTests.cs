@@ -33,10 +33,13 @@ namespace Abaddax.Socks5.Tests
                 .WithNoAuthenticationRequired()
                 .WithConnectMethod(ConnectMethod.TCPConnect)
                 .WithUsernamePasswordAuthentication("user123", "password123")
-                .WithSecureSocketLayerAuthentication(async (stream, token) =>
+                .WithSecureSocketLayerAuthentication(async (stream, cancellationToken) =>
                 {
                     var tlsStream = new SslStream(stream, false, (sender, cert, chain, prolicy) => true);
-                    await tlsStream.AuthenticateAsClientAsync("localhost");
+                    await tlsStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions()
+                    {
+                        TargetHost = "localhost"
+                    }, cancellationToken);
                     return tlsStream;
                 }, [0]);
         }
@@ -55,7 +58,7 @@ namespace Abaddax.Socks5.Tests
         {
             var serverOptions = new Socks5ServerOptions()
                 .WithNoAuthenticationRequired()
-                .WithConnectionHandler(async (method, type, address, port, token) =>
+                .WithConnectionHandler(async (method, type, address, port, cancellationToken) =>
                 {
                     if (method != ConnectMethod.TCPConnect)
                         return (ConnectCode.NotAllowedByRuleset, null);
@@ -63,8 +66,9 @@ namespace Abaddax.Socks5.Tests
                     if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                         return (ConnectCode.ConnectionRefused, null);
 
-                    var serverTask = _remoteListener.AcceptTcpClientAsync();
-                    var connection = new TcpClient(address, port);
+                    var serverTask = _remoteListener.AcceptTcpClientAsync(cancellationToken);
+                    var connection = new TcpClient();
+                    await connection.ConnectAsync(address, port, cancellationToken);
                     _remoteClient = await serverTask;
 
                     return (ConnectCode.Succeeded, connection.GetStream());
@@ -96,13 +100,13 @@ namespace Abaddax.Socks5.Tests
         public async Task ShouldAcceptWithUsernamePasswordAndProxyData()
         {
             var serverOptions = new Socks5ServerOptions()
-                .WithUsernamePasswordAuthentication(async (username, password, token) =>
+                .WithUsernamePasswordAuthentication(async (username, password, _) =>
                 {
                     if (username == "user123" && password == "password123")
                         return true;
                     return false;
                 })
-                .WithConnectionHandler(async (method, type, address, port, token) =>
+                .WithConnectionHandler(async (method, type, address, port, cancellationToken) =>
                 {
                     if (method != ConnectMethod.TCPConnect)
                         return (ConnectCode.NotAllowedByRuleset, null);
@@ -110,8 +114,9 @@ namespace Abaddax.Socks5.Tests
                     if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                         return (ConnectCode.ConnectionRefused, null);
 
-                    var serverTask = _remoteListener.AcceptTcpClientAsync();
-                    var connection = new TcpClient(address, port);
+                    var serverTask = _remoteListener.AcceptTcpClientAsync(cancellationToken);
+                    var connection = new TcpClient();
+                    await connection.ConnectAsync(address, port, cancellationToken);
                     _remoteClient = await serverTask;
 
                     return (ConnectCode.Succeeded, connection.GetStream());
@@ -143,13 +148,16 @@ namespace Abaddax.Socks5.Tests
         public async Task ShouldAccepttWithSecureSocketLayerAndProxyData()
         {
             var serverOptions = new Socks5ServerOptions()
-                 .WithSecureSocketLayerAuthentication(async (stream, token) =>
+                 .WithSecureSocketLayerAuthentication(async (stream, cancellationToken) =>
                  {
                      var tlsStream = new SslStream(stream, false, (sender, cert, chain, prolicy) => true);
-                     await tlsStream.AuthenticateAsServerAsync(_serverCertificate);
+                     await tlsStream.AuthenticateAsServerAsync(new SslServerAuthenticationOptions()
+                     {
+                         ServerCertificate = _serverCertificate
+                     }, cancellationToken);
                      return tlsStream;
                  }, [0])
-                 .WithConnectionHandler(async (method, type, address, port, token) =>
+                 .WithConnectionHandler(async (method, type, address, port, cancellationToken) =>
                  {
                      if (method != ConnectMethod.TCPConnect)
                          return (ConnectCode.NotAllowedByRuleset, null);
@@ -157,8 +165,9 @@ namespace Abaddax.Socks5.Tests
                      if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                          return (ConnectCode.ConnectionRefused, null);
 
-                     var serverTask = _remoteListener.AcceptTcpClientAsync();
-                     var connection = new TcpClient(address, port);
+                     var serverTask = _remoteListener.AcceptTcpClientAsync(cancellationToken);
+                     var connection = new TcpClient();
+                     await connection.ConnectAsync(address, port, cancellationToken);
                      _remoteClient = await serverTask;
 
                      return (ConnectCode.Succeeded, connection.GetStream());
@@ -220,14 +229,14 @@ namespace Abaddax.Socks5.Tests
         public async Task ShouldNotAcceptWhenInvalidUsernamePassword()
         {
             var serverOptions = new Socks5ServerOptions()
-               .WithUsernamePasswordAuthentication(async (username, password, token) =>
+               .WithUsernamePasswordAuthentication(async (username, password, _) =>
                {
                    if (username == "user1234" &&
                        password == "password1234")
                        return true;
                    return false;
                })
-               .WithConnectionHandler(async (method, type, address, port, token) =>
+               .WithConnectionHandler(async (method, type, address, port, cancellationToken) =>
                {
                    if (method != ConnectMethod.TCPConnect)
                        return (ConnectCode.NotAllowedByRuleset, null);
@@ -235,8 +244,9 @@ namespace Abaddax.Socks5.Tests
                    if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                        return (ConnectCode.ConnectionRefused, null);
 
-                   var serverTask = _remoteListener.AcceptTcpClientAsync();
-                   var connection = new TcpClient(address, port);
+                   var serverTask = _remoteListener.AcceptTcpClientAsync(cancellationToken);
+                   var connection = new TcpClient();
+                   await connection.ConnectAsync(address, port, cancellationToken);
                    _remoteClient = await serverTask;
 
                    return (ConnectCode.Succeeded, connection.GetStream());
@@ -267,13 +277,16 @@ namespace Abaddax.Socks5.Tests
         public async Task ShouldNotAcceptWhenInvalidCertificate()
         {
             var serverOptions = new Socks5ServerOptions()
-               .WithSecureSocketLayerAuthentication(async (stream, token) =>
+               .WithSecureSocketLayerAuthentication(async (stream, cancellationToken) =>
                {
                    var tlsStream = new SslStream(stream, false, (sender, cert, chain, prolicy) => false);
-                   await tlsStream.AuthenticateAsServerAsync(_serverCertificate);
+                   await tlsStream.AuthenticateAsServerAsync(new SslServerAuthenticationOptions()
+                   {
+                       ServerCertificate = _serverCertificate
+                   }, cancellationToken);
                    return tlsStream;
                }, [0])
-               .WithConnectionHandler(async (method, type, address, port, token) =>
+               .WithConnectionHandler(async (method, type, address, port, cancellationToken) =>
                {
                    if (method != ConnectMethod.TCPConnect)
                        return (ConnectCode.NotAllowedByRuleset, null);
@@ -281,8 +294,9 @@ namespace Abaddax.Socks5.Tests
                    if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                        return (ConnectCode.ConnectionRefused, null);
 
-                   var serverTask = _remoteListener.AcceptTcpClientAsync();
-                   var connection = new TcpClient(address, port);
+                   var serverTask = _remoteListener.AcceptTcpClientAsync(cancellationToken);
+                   var connection = new TcpClient();
+                   await connection.ConnectAsync(address, port, cancellationToken);
                    _remoteClient = await serverTask;
 
                    return (ConnectCode.Succeeded, connection.GetStream());
@@ -315,14 +329,14 @@ namespace Abaddax.Socks5.Tests
         {
             var serverOptions = new Socks5ServerOptions()
                 .WithNoAuthenticationRequired()
-                .WithUsernamePasswordAuthentication(async (username, password, token) =>
+                .WithUsernamePasswordAuthentication(async (username, password, _) =>
                 {
                     if (username == "user123" &&
                         password == "password123")
                         return true;
                     return false;
                 })
-                .WithConnectionHandler(async (method, type, address, port, token) =>
+                .WithConnectionHandler(async (method, type, address, port, cancellationToken) =>
                 {
                     if (method != ConnectMethod.TCPConnect)
                         return (ConnectCode.NotAllowedByRuleset, null);
@@ -330,8 +344,9 @@ namespace Abaddax.Socks5.Tests
                     if (type != AddressType.IPv4 || address != "127.0.0.1" || port != _remotePort)
                         return (ConnectCode.ConnectionRefused, null);
 
-                    var serverTask = _remoteListener.AcceptTcpClientAsync();
-                    var connection = new TcpClient(address, port);
+                    var serverTask = _remoteListener.AcceptTcpClientAsync(cancellationToken);
+                    var connection = new TcpClient();
+                    await connection.ConnectAsync(address, port, cancellationToken);
                     _remoteClient = await serverTask;
 
                     return (ConnectCode.Succeeded, connection.GetStream());

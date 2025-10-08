@@ -6,19 +6,19 @@ namespace Abaddax.Socks5.Authentication
     {
         public IEnumerable<AuthenticationMethod> SupportedMethods { get; } = [AuthenticationMethod.NoAuthenticationRequired];
 
-        public async Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken token)
+        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             if (methods?.Any(x => x == AuthenticationMethod.NoAuthenticationRequired) ?? false)
-                return AuthenticationMethod.NoAuthenticationRequired;
-            return null;
+                return Task.FromResult<AuthenticationMethod?>(AuthenticationMethod.NoAuthenticationRequired);
+            return Task.FromResult<AuthenticationMethod?>(null);
         }
-        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken token)
+        public Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             if (method != AuthenticationMethod.NoAuthenticationRequired)
                 throw new NotSupportedException();
 
             //UNTESTED
-            return stream;
+            return Task.FromResult(stream);
         }
 
     }

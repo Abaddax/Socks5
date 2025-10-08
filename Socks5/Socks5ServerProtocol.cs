@@ -98,7 +98,7 @@ namespace Abaddax.Socks5
         }
 
 
-        public async Task AcceptAsync(CancellationToken token = default)
+        public async Task AcceptAsync(CancellationToken cancellationToken = default)
         {
             if (_state != ServerState.None)
                 throw new InvalidOperationException("This method can only be called once");
@@ -111,20 +111,20 @@ namespace Abaddax.Socks5
                 {
                     _connectionLog.Clear();
                     handshakeStream = new CallbackStream(
-                        (buffer, token) =>
+                        (buffer, cancellationToken) =>
                         {
-                            return new(_stream.ReadAsync(buffer, token).AsTask().ContinueWith(x =>
+                            return new(_stream.ReadAsync(buffer, cancellationToken).AsTask().ContinueWith(x =>
                             {
                                 if (_state != ServerState.Connected)
                                     _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Client, Data = buffer.ToArray() });
                                 return x.Result;
                             }, TaskContinuationOptions.NotOnFaulted));
                         },
-                        (buffer, token) =>
+                        (buffer, cancellationToken) =>
                         {
                             if (_state != ServerState.Connected)
                                 _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Server, Data = buffer.ToArray() });
-                            return _stream.WriteAsync(buffer, token);
+                            return _stream.WriteAsync(buffer, cancellationToken);
                         });
                 }
 
@@ -133,8 +133,8 @@ namespace Abaddax.Socks5
                 AuthenticationMethod authMethod;
                 //Read authentication-request
                 {
-                    var authRequest = await AuthenticationRequestParser.Shared.ReadAsync(handshakeStream, token);
-                    authMethod = await Options.AuthenticationHandler.SelectAuthenticationMethod(authRequest.AuthenticationMethods, token) ?? AuthenticationMethod.NoAcceptableMethods;
+                    var authRequest = await AuthenticationRequestParser.Shared.ReadAsync(handshakeStream, cancellationToken);
+                    authMethod = await Options.AuthenticationHandler.SelectAuthenticationMethod(authRequest.AuthenticationMethods, cancellationToken) ?? AuthenticationMethod.NoAcceptableMethods;
                 }
                 //Send authentication-response
                 {
@@ -142,13 +142,13 @@ namespace Abaddax.Socks5
                     {
                         AuthenticationMethod = authMethod
                     };
-                    await AuthenticationResponseParser.Shared.WriteAsync(handshakeStream, authResponse, token);
+                    await AuthenticationResponseParser.Shared.WriteAsync(handshakeStream, authResponse, cancellationToken);
                     if (authResponse.AuthenticationMethod == AuthenticationMethod.NoAcceptableMethods)
                         throw new Exception("Invalid authentication method");
                 }
 
                 //Handle authentication
-                _stream = await Options.AuthenticationHandler.AuthenticationHandler(/*Do not log authentication!*/_stream, authMethod, token);
+                _stream = await Options.AuthenticationHandler.AuthenticationHandler(/*Do not log authentication!*/_stream, authMethod, cancellationToken);
 
                 //Continue with current stream
                 if (_connectionLog == null)
@@ -159,16 +159,16 @@ namespace Abaddax.Socks5
                 ConnectCode code;
                 //Read connect-request
                 {
-                    var conRequest = await ConnectRequestParser.Shared.ReadAsync(handshakeStream, token);
+                    var conRequest = await ConnectRequestParser.Shared.ReadAsync(handshakeStream, cancellationToken);
 
                     AddressType = conRequest.AddressType;
                     Address = conRequest.Address;
                     Port = conRequest.Port;
                     try
                     {
-                        (code, _remoteStream) = await Options.ConnectHandler.Invoke(conRequest.ConnectMethod, conRequest.AddressType, conRequest.Address, conRequest.Port, token);
+                        (code, _remoteStream) = await Options.ConnectHandler.Invoke(conRequest.ConnectMethod, conRequest.AddressType, conRequest.Address, conRequest.Port, cancellationToken);
                     }
-                    catch (Exception)
+                    catch (Exception ex)
                     {
                         code = ConnectCode.SocksFailure;
                         _remoteStream = null;
@@ -183,7 +183,7 @@ namespace Abaddax.Socks5
                         Address = Address,
                         Port = Port,
                     };
-                    await ConnectResponseParser.Shared.WriteAsync(handshakeStream, conResponse, token);
+                    await ConnectResponseParser.Shared.WriteAsync(handshakeStream, conResponse, cancellationToken);
                     if (code != ConnectCode.Succeeded)
                     {
                         _stream.Close();
@@ -200,7 +200,7 @@ namespace Abaddax.Socks5
             }
         }
 
-        public async Task ProxyAsync(CancellationToken token = default, bool leaveOpen = false)
+        public async Task ProxyAsync(CancellationToken cancellationToken, bool leaveOpen = false)
         {
             if (_state != ServerState.Connected)
                 throw new InvalidOperationException("No client connected, accept the connection first");
@@ -210,7 +210,7 @@ namespace Abaddax.Socks5
                 throw new InvalidOperationException("Proxy is already running");
             _proxy?.Dispose();
             _proxy = new StreamProxy(_stream, _remoteStream, leaveStream1Open: leaveOpen, leaveStream2Open: leaveOpen);
-            await _proxy.TunnelAsync(token);
+            await _proxy.TunnelAsync(cancellationToken);
             if (!leaveOpen)
             {
                 _remoteStream.Close();
@@ -219,10 +219,11 @@ namespace Abaddax.Socks5
             }
         }
 
-        public async Task DisconnectAsync()
+        public Task DisconnectAsync()
         {
             _remoteStream?.Dispose();
             _stream?.Dispose();
+            return Task.CompletedTask;
         }
 
         #region IDisposable

@@ -38,40 +38,40 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
             switch (message.AddressType)
             {
                 case AddressType.IPv4:
-                {
-                    var address = IPAddress.Parse(message.Address);
-                    if (!address.TryWriteBytes(destination.Slice(4, 4), out _))
-                        throw new Exception("Failed to parse IPv4");
-                    BinaryPrimitives.WriteInt16BigEndian(destination.Slice(8, 2), (short)message.Port);
-                    break;
-                }
+                    {
+                        var address = IPAddress.Parse(message.Address);
+                        if (!address.TryWriteBytes(destination.Slice(4, 4), out _))
+                            throw new Exception("Failed to parse IPv4");
+                        BinaryPrimitives.WriteInt16BigEndian(destination.Slice(8, 2), (short)message.Port);
+                        break;
+                    }
                 case AddressType.DomainName:
-                {
-                    destination[4] = (byte)message.Address.Length;
-                    if (!Encoding.UTF8.TryGetBytes(message.Address, destination.Slice(5, message.Address.Length), out _))
-                        throw new Exception("Failed to parse domain-name");
-                    BinaryPrimitives.WriteInt16BigEndian(destination.Slice(5 + message.Address.Length, 2), (short)message.Port);
-                    break;
-                }
+                    {
+                        destination[4] = (byte)message.Address.Length;
+                        if (!Encoding.UTF8.TryGetBytes(message.Address, destination.Slice(5, message.Address.Length), out _))
+                            throw new Exception("Failed to parse domain-name");
+                        BinaryPrimitives.WriteInt16BigEndian(destination.Slice(5 + message.Address.Length, 2), (short)message.Port);
+                        break;
+                    }
                 case AddressType.IPv6:
-                {
-                    var address = IPAddress.Parse(message.Address);
-                    if (!address.TryWriteBytes(destination.Slice(4, 16), out _))
-                        throw new Exception("Failed to parse IPv6");
-                    BinaryPrimitives.WriteInt16BigEndian(destination.Slice(20, 2), (short)message.Port);
-                    break;
-                }
+                    {
+                        var address = IPAddress.Parse(message.Address);
+                        if (!address.TryWriteBytes(destination.Slice(4, 16), out _))
+                            throw new Exception("Failed to parse IPv6");
+                        BinaryPrimitives.WriteInt16BigEndian(destination.Slice(20, 2), (short)message.Port);
+                        break;
+                    }
                 default:
                     throw new ArgumentException("Unknown address-type");
             }
             return size;
         }
-        public override async Task<ConnectResponse> ReadAsync(Stream stream, CancellationToken token)
+        public override async Task<ConnectResponse> ReadAsync(Stream stream, CancellationToken cancellationToken)
         {
             var message = new ConnectResponse();
 
             var header = new byte[4];
-            await stream.ReadExactlyAsync(header, token);
+            await stream.ReadExactlyAsync(header, cancellationToken);
             if (header[0] != 0x05)
                 throw new ArgumentException("Invalid socks-version");
             message.ConnectCode = (ConnectCode)header[1];
@@ -81,34 +81,34 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
             switch (message.AddressType)
             {
                 case AddressType.IPv4:
-                {
-                    var packet = new byte[4 + 2];
-                    await stream.ReadExactlyAsync(packet, token);
-                    var address = new IPAddress(packet.AsSpan(0, 4));
-                    message.Address = address.ToString();
-                    message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(4, 2));
-                    break;
-                }
+                    {
+                        var packet = new byte[4 + 2];
+                        await stream.ReadExactlyAsync(packet, cancellationToken);
+                        var address = new IPAddress(packet.AsSpan(0, 4));
+                        message.Address = address.ToString();
+                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(4, 2));
+                        break;
+                    }
                 case AddressType.DomainName:
-                {
-                    var length = stream.ReadByte();
-                    if (length < byte.MinValue || length > byte.MaxValue)
-                        throw new EndOfStreamException();
-                    var packet = new byte[length + 2];
-                    await stream.ReadExactlyAsync(packet, token);
-                    message.Address = Encoding.UTF8.GetString(packet.AsSpan(0, length));
-                    message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(length, 2));
-                    break;
-                }
+                    {
+                        var length = stream.ReadByte();
+                        if (length < byte.MinValue || length > byte.MaxValue)
+                            throw new EndOfStreamException();
+                        var packet = new byte[length + 2];
+                        await stream.ReadExactlyAsync(packet, cancellationToken);
+                        message.Address = Encoding.UTF8.GetString(packet.AsSpan(0, length));
+                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(length, 2));
+                        break;
+                    }
                 case AddressType.IPv6:
-                {
-                    var packet = new byte[16 + 2];
-                    await stream.ReadExactlyAsync(packet, token);
-                    var address = new IPAddress(packet.AsSpan(0, 16));
-                    message.Address = address.ToString();
-                    message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(16, 2));
-                    break;
-                }
+                    {
+                        var packet = new byte[16 + 2];
+                        await stream.ReadExactlyAsync(packet, cancellationToken);
+                        var address = new IPAddress(packet.AsSpan(0, 16));
+                        message.Address = address.ToString();
+                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(16, 2));
+                        break;
+                    }
                 default:
                     throw new ArgumentException("Unknown address-type");
             }

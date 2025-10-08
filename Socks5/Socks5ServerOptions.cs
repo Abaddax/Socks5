@@ -3,12 +3,12 @@ using Abaddax.Socks5.Protocol.Enums;
 
 namespace Abaddax.Socks5
 {
-    public delegate Task<(ConnectCode Result, Stream? Stream)> ConnectionHandler(ConnectMethod method, AddressType type, string address, int port, CancellationToken token);
+    public delegate Task<(ConnectCode Result, Stream? Stream)> ConnectionHandler(ConnectMethod method, AddressType type, string address, int port, CancellationToken cancellationToken);
 
     public class Socks5ServerOptions
     {
         private IAuthenticationHandler _authenticationHandler = new AuthenticationHandlerContainer();
-        private ConnectionHandler _connectHandler = async (method, type, address, port, token) => (ConnectCode.HostUnreachable, null);
+        private ConnectionHandler _connectHandler = (_, _, _, _, _) => Task.FromResult<(ConnectCode, Stream?)>((ConnectCode.HostUnreachable, null));
 
         public IAuthenticationHandler AuthenticationHandler
         {

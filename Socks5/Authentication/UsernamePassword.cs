@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Abaddax.Socks5.Authentication
 {
-    public delegate Task<bool> UserLoginHandler(string username, string password, CancellationToken token);
+    public delegate Task<bool> UserLoginHandler(string username, string password, CancellationToken cancellationToken);
     internal sealed class UsernamePasswordClient : IAuthenticationHandler
     {
         private readonly string _username;
@@ -21,13 +21,13 @@ namespace Abaddax.Socks5.Authentication
         }
 
         public IEnumerable<AuthenticationMethod> SupportedMethods { get; } = [AuthenticationMethod.UsernamePassword];
-        public async Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken token)
+        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             if (methods?.Any(x => x == AuthenticationMethod.UsernamePassword) ?? false)
-                return AuthenticationMethod.UsernamePassword;
-            return null;
+                return Task.FromResult<AuthenticationMethod?>(AuthenticationMethod.UsernamePassword);
+            return Task.FromResult<AuthenticationMethod?>(null);
         }
-        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken token)
+        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             if (method != AuthenticationMethod.UsernamePassword)
                 throw new NotSupportedException();
@@ -38,10 +38,10 @@ namespace Abaddax.Socks5.Authentication
                 Username = _username,
                 Password = _password
             };
-            await request.WriteAsync(stream, request, token);
+            await request.WriteAsync(stream, request, cancellationToken);
 
             var response = new UserAuthenticationResponse();
-            response = await response.ReadAsync(stream, token);
+            response = await response.ReadAsync(stream, cancellationToken);
 
             if (request.SubnegotiationVersion != response.SubnegotiationVersion ||
                 response.Status != 0)
@@ -61,24 +61,24 @@ namespace Abaddax.Socks5.Authentication
         }
 
         public IEnumerable<AuthenticationMethod> SupportedMethods { get; } = new AuthenticationMethod[] { AuthenticationMethod.UsernamePassword };
-        public async Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken token)
+        public async Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             if (methods?.Any(x => x == AuthenticationMethod.UsernamePassword) ?? false)
                 return AuthenticationMethod.UsernamePassword;
             return null;
         }
-        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken token)
+        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             if (method != AuthenticationMethod.UsernamePassword)
                 throw new NotSupportedException();
 
             var request = new UserAuthenticationRequest();
-            request = await request.ReadAsync(stream, token);
+            request = await request.ReadAsync(stream, cancellationToken);
 
             bool allow;
             try
             {
-                allow = await _loginhandler.Invoke(request.Username, request.Password, token);
+                allow = await _loginhandler.Invoke(request.Username, request.Password, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -90,7 +90,7 @@ namespace Abaddax.Socks5.Authentication
                 SubnegotiationVersion = request.SubnegotiationVersion,
                 Status = (byte)(allow ? 0 : 1)
             };
-            await response.WriteAsync(stream, response, token);
+            await response.WriteAsync(stream, response, cancellationToken);
 
             return stream;
         }
@@ -98,18 +98,18 @@ namespace Abaddax.Socks5.Authentication
     }
 
     #region Helper
-    internal struct UserAuthenticationRequest : IStreamParser<UserAuthenticationRequest>
+    internal record struct UserAuthenticationRequest : IStreamParser<UserAuthenticationRequest>
     {
-        public byte SubnegotiationVersion;
-        public string Username;
-        public string Password;
+        public byte SubnegotiationVersion { get; set; }
+        public string Username { get; set; }
+        public string Password { get; set; }
 
-        public async Task<UserAuthenticationRequest> ReadAsync(Stream stream, CancellationToken token)
+        public readonly async Task<UserAuthenticationRequest> ReadAsync(Stream stream, CancellationToken cancellationToken)
         {
             var message = new UserAuthenticationRequest();
 
             var header = new byte[2];
-            await stream.ReadExactlyAsync(header, token);
+            await stream.ReadExactlyAsync(header, cancellationToken);
 
             message.SubnegotiationVersion = header[0];
             if (message.SubnegotiationVersion != 1)
@@ -117,7 +117,7 @@ namespace Abaddax.Socks5.Authentication
 
             var usernameLength = header[1];
             var usernameBuffer = new byte[usernameLength];
-            await stream.ReadExactlyAsync(usernameBuffer, token);
+            await stream.ReadExactlyAsync(usernameBuffer, cancellationToken);
 
             message.Username = Encoding.UTF8.GetString(usernameBuffer);
 
@@ -126,13 +126,13 @@ namespace Abaddax.Socks5.Authentication
                 throw new EndOfStreamException();
 
             var passwordBuffer = new byte[passwordLength];
-            await stream.ReadExactlyAsync(passwordBuffer, token);
+            await stream.ReadExactlyAsync(passwordBuffer, cancellationToken);
 
             message.Password = Encoding.UTF8.GetString(passwordBuffer);
 
             return message;
         }
-        public async Task WriteAsync(Stream stream, UserAuthenticationRequest message, CancellationToken token)
+        public readonly async Task WriteAsync(Stream stream, UserAuthenticationRequest message, CancellationToken cancellationToken)
         {
             var userNameLength = Encoding.UTF8.GetByteCount(message.Username);
             var passwordLength = Encoding.UTF8.GetByteCount(message.Password);
@@ -146,20 +146,20 @@ namespace Abaddax.Socks5.Authentication
             buffer[2 + userNameLength] = (byte)passwordLength;
             Encoding.UTF8.GetBytes(message.Password, buffer.AsSpan(3 + userNameLength, passwordLength));
 
-            await stream.WriteAsync(buffer, token);
+            await stream.WriteAsync(buffer, cancellationToken);
         }
     }
-    internal struct UserAuthenticationResponse : IStreamParser<UserAuthenticationResponse>
+    internal record struct UserAuthenticationResponse : IStreamParser<UserAuthenticationResponse>
     {
-        public byte SubnegotiationVersion;
-        public byte Status;
+        public byte SubnegotiationVersion { get; set; }
+        public byte Status { get; set; }
 
-        public async Task<UserAuthenticationResponse> ReadAsync(Stream stream, CancellationToken token)
+        public readonly async Task<UserAuthenticationResponse> ReadAsync(Stream stream, CancellationToken cancellationToken)
         {
             var message = new UserAuthenticationResponse();
 
             var header = new byte[2];
-            await stream.ReadExactlyAsync(header, token);
+            await stream.ReadExactlyAsync(header, cancellationToken);
 
             message.SubnegotiationVersion = header[0];
             if (message.SubnegotiationVersion != 1)
@@ -169,13 +169,13 @@ namespace Abaddax.Socks5.Authentication
 
             return message;
         }
-        public async Task WriteAsync(Stream stream, UserAuthenticationResponse message, CancellationToken token)
+        public readonly async Task WriteAsync(Stream stream, UserAuthenticationResponse message, CancellationToken cancellationToken)
         {
             var buffer = new byte[2];
             buffer[0] = message.SubnegotiationVersion;
             buffer[1] = message.Status;
 
-            await stream.WriteAsync(buffer, token);
+            await stream.WriteAsync(buffer, cancellationToken);
         }
     }
     #endregion

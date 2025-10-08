@@ -21,12 +21,12 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
 
             return size;
         }
-        public override async Task<AuthenticationResponse> ReadAsync(Stream stream, CancellationToken token)
+        public override async Task<AuthenticationResponse> ReadAsync(Stream stream, CancellationToken cancellationToken)
         {
             var message = new AuthenticationResponse();
 
             var header = new byte[2];
-            await stream.ReadExactlyAsync(header, token);
+            await stream.ReadExactlyAsync(header, cancellationToken);
             if (header[0] != 0x05)
                 throw new ArgumentException("Invalid socks-version");
 

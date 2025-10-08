@@ -14,7 +14,7 @@ namespace Abaddax.Socks5.Authentication
         /// </summary>
         /// <param name="methods">Methods the client supports</param>
         /// <returns><see langword="null"/> or <see cref="AuthenticationMethod.NoAcceptableMethods"/></returns>
-        Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken token);
+        Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken);
 
         /// <summary>
         /// Authentication-Implementation on <paramref name="stream"/>
@@ -22,6 +22,6 @@ namespace Abaddax.Socks5.Authentication
         /// <param name="stream">Raw stream to read and write if needed for authentication</param>
         /// <param name="method">Selected AuthenticationMethod</param>
         /// <returns>The stream to continue the handshake on</returns>
-        Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken token);
+        Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken);
     }
 }

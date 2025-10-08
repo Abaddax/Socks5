@@ -16,11 +16,11 @@ namespace Abaddax.Socks5.Tests
         Socks5ServerOptions _serverOptions;
         X509Certificate2 _serverCertificate;
 
-        string? clientUsername;
-        string? clientPassword;
-        AddressType? addressType;
-        string? address;
-        int? port;
+        string? _clientUsername;
+        string? _clientPassword;
+        AddressType? _addressType;
+        string? _address;
+        int? _port;
 
         [SetUp]
         public void Setup()
@@ -32,25 +32,28 @@ namespace Abaddax.Socks5.Tests
 
             _serverOptions = new Socks5ServerOptions()
                 .WithNoAuthenticationRequired()
-                .WithUsernamePasswordAuthentication(async (username, password, token) =>
+                .WithUsernamePasswordAuthentication(async (username, password, _) =>
                 {
-                    clientUsername = username;
-                    clientPassword = password;
+                    _clientUsername = username;
+                    _clientPassword = password;
                     return true;
                 })
-                .WithSecureSocketLayerAuthentication(async (stream, token) =>
+                .WithSecureSocketLayerAuthentication(async (stream, cancellationToken) =>
                 {
                     var tlsStream = new SslStream(stream, false, (sender, cert, chain, prolicy) => true);
-                    await tlsStream.AuthenticateAsServerAsync(_serverCertificate);
+                    await tlsStream.AuthenticateAsServerAsync(new SslServerAuthenticationOptions()
+                    {
+                        ServerCertificate = _serverCertificate,
+                    }, cancellationToken);
                     return tlsStream;
                 }, [0])
-                .WithConnectionHandler(async (method, type, addr, p, token) =>
+                .WithConnectionHandler(async (method, type, address, port, _) =>
                 {
                     if (method != ConnectMethod.TCPConnect)
                         return (ConnectCode.NotAllowedByRuleset, null);
-                    addressType = type;
-                    address = addr;
-                    port = p;
+                    _addressType = type;
+                    _address = address;
+                    _port = port;
                     return (ConnectCode.Succeeded, new MemoryStream());
                 });
         }
@@ -86,9 +89,9 @@ namespace Abaddax.Socks5.Tests
             Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
 
 
-            Assert.That(addressType, Is.EqualTo(AddressType.IPv4));
-            Assert.That(address, Is.EqualTo("127.0.0.1"));
-            Assert.That(port, Is.EqualTo(_remotePort));
+            Assert.That(_addressType, Is.EqualTo(AddressType.IPv4));
+            Assert.That(_address, Is.EqualTo("127.0.0.1"));
+            Assert.That(_port, Is.EqualTo(_remotePort));
 
             Assert.That(socksClient.Stream, Is.Not.Null);
 
@@ -118,12 +121,12 @@ namespace Abaddax.Socks5.Tests
             Assert.That(socksClient.Address, Is.EqualTo("::1"));
             Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
 
-            Assert.That(addressType, Is.EqualTo(AddressType.IPv6));
-            Assert.That(address, Is.EqualTo("::1"));
-            Assert.That(port, Is.EqualTo(_remotePort));
+            Assert.That(_addressType, Is.EqualTo(AddressType.IPv6));
+            Assert.That(_address, Is.EqualTo("::1"));
+            Assert.That(_port, Is.EqualTo(_remotePort));
 
-            Assert.That(clientUsername, Is.EqualTo("user123"));
-            Assert.That(clientPassword, Is.EqualTo("password123"));
+            Assert.That(_clientUsername, Is.EqualTo("user123"));
+            Assert.That(_clientPassword, Is.EqualTo("password123"));
 
             Assert.That(socksClient.Stream, Is.Not.Null);
 
@@ -135,10 +138,13 @@ namespace Abaddax.Socks5.Tests
         {
             var clientOptions = new Socks5ClientOptions()
                .WithConnectMethod(ConnectMethod.TCPConnect)
-               .WithSecureSocketLayerAuthentication(async (stream, token) =>
+               .WithSecureSocketLayerAuthentication(async (stream, cancellationToken) =>
                {
                    var tlsStream = new SslStream(stream, false, (sender, cert, chain, prolicy) => true);
-                   await tlsStream.AuthenticateAsClientAsync("localhost");
+                   await tlsStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions()
+                   {
+                       TargetHost = "localhost"
+                   }, cancellationToken);
                    return tlsStream;
                }, [0]);
 
@@ -158,9 +164,9 @@ namespace Abaddax.Socks5.Tests
             Assert.That(socksClient.Address, Is.EqualTo("localhost"));
             Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
 
-            Assert.That(addressType, Is.EqualTo(AddressType.DomainName));
-            Assert.That(address, Is.EqualTo("localhost"));
-            Assert.That(port, Is.EqualTo(_remotePort));
+            Assert.That(_addressType, Is.EqualTo(AddressType.DomainName));
+            Assert.That(_address, Is.EqualTo("localhost"));
+            Assert.That(_port, Is.EqualTo(_remotePort));
 
             Assert.That(socksClient.Stream, Is.Not.Null);
 
@@ -172,10 +178,13 @@ namespace Abaddax.Socks5.Tests
         {
             var clientOptions = new Socks5ClientOptions()
                .WithConnectMethod(ConnectMethod.TCPConnect)
-               .WithSecureSocketLayerAuthentication(async (stream, token) =>
+               .WithSecureSocketLayerAuthentication(async (stream, cancellationToken) =>
                {
                    var tlsStream = new SslStream(stream, false, (sender, cert, chain, prolicy) => true);
-                   await tlsStream.AuthenticateAsClientAsync("localhost");
+                   await tlsStream.AuthenticateAsClientAsync(new SslClientAuthenticationOptions()
+                   {
+                       TargetHost = "localhost"
+                   }, cancellationToken);
                    return tlsStream;
                }, [0]);
             var serverOptions = new Socks5ServerOptions()
@@ -198,9 +207,9 @@ namespace Abaddax.Socks5.Tests
             Assert.That(socksClient.Address, Is.EqualTo("0.0.0.0"));
             Assert.That(socksClient.Port, Is.EqualTo(0));
 
-            Assert.That(addressType, Is.Null);
-            Assert.That(address, Is.Null);
-            Assert.That(port, Is.Null);
+            Assert.That(_addressType, Is.Null);
+            Assert.That(_address, Is.Null);
+            Assert.That(_port, Is.Null);
 
             Assert.Throws<InvalidOperationException>(() => { _ = socksClient.Stream; });
         }
@@ -213,20 +222,20 @@ namespace Abaddax.Socks5.Tests
                 .WithNoAuthenticationRequired()
                 .WithUsernamePasswordAuthentication("user1234", "password1234");
             var serverOptions1 = new Socks5ServerOptions()
-                .WithUsernamePasswordAuthentication(async (username, password, token) =>
+                .WithUsernamePasswordAuthentication(async (username, password, _) =>
                 {
                     if (username == "user1234" &&
                         password == "password1234")
                         return true;
                     return false;
                 })
-                .WithConnectionHandler(async (method, type, addr, p, token) =>
+                .WithConnectionHandler(async (method, type, address, port, _) =>
                 {
                     return (ConnectCode.Succeeded, new MemoryStream());
                 });
             var serverOptions2 = new Socks5ServerOptions()
                 .WithNoAuthenticationRequired()
-                .WithConnectionHandler(async (method, type, addr, p, token) =>
+                .WithConnectionHandler(async (method, type, addr, p, _) =>
                 {
                     return (ConnectCode.Succeeded, new MemoryStream());
                 });
