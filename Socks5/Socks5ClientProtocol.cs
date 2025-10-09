@@ -83,7 +83,7 @@ namespace Abaddax.Socks5
             }
         }
 
-        public async Task ConnectAsync(AddressType type, string address, int port,
+        public async Task ConnectAsync(AddressType type, string address, ushort port,
             CancellationToken cancellationToken = default)
         {
             if (_state != ClientState.None)
@@ -130,7 +130,9 @@ namespace Abaddax.Socks5
                     var authResponse = await AuthenticationResponseParser.Shared.ReadAsync(handshakeStream, cancellationToken);
                     if (authResponse.AuthenticationMethod == AuthenticationMethod.NoAcceptableMethods ||
                        !Options.AuthenticationHandler.SupportedMethods.Any(x => x == authResponse.AuthenticationMethod))
+                    {
                         throw new Exception("Invalid authentication method");
+                    }
                     authMethod = authResponse.AuthenticationMethod;
                 }
 
@@ -158,12 +160,16 @@ namespace Abaddax.Socks5
                 {
                     var conResponse = await ConnectResponseParser.Shared.ReadAsync(handshakeStream, cancellationToken);
                     if (conResponse.ConnectCode != ConnectCode.Succeeded)
+                    {
                         throw new Exception($"Connect failed with code: {conResponse.ConnectCode}");
+                    }
                     if (Options.ValidateReceivedEndpoint &&
                         (conResponse.AddressType != type ||
                         conResponse.Address != address ||
                         conResponse.Port != port))
+                    {
                         throw new Exception($"Received unknown connection-endpoint {conResponse.AddressType}//{conResponse.Address}:{conResponse.Port}. Expected: {type}//{address}:{port}");
+                    }
                 }
 
                 AddressType = type;
@@ -179,9 +185,10 @@ namespace Abaddax.Socks5
             }
         }
 
-        public async Task DisconnectAsync()
+        public Task DisconnectAsync()
         {
             _stream?.Dispose();
+            return Task.CompletedTask;
         }
 
         #region IDisposable

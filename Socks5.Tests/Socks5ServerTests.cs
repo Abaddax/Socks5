@@ -9,8 +9,8 @@ namespace Abaddax.Socks5.Tests
     [NonParallelizable]
     public class Socks5ServerTests
     {
-        const int _localPort = 11080;
-        const int _remotePort = 12345;
+        const ushort _localPort = 61080;
+        const ushort _remotePort = 54321;
 
         TcpListener _listener;
         TcpListener _remoteListener;

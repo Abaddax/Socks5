@@ -3,7 +3,7 @@ using Abaddax.Socks5.Protocol.Enums;
 
 namespace Abaddax.Socks5
 {
-    public delegate Task<(ConnectCode Result, Stream? Stream)> ConnectionHandler(ConnectMethod method, AddressType type, string address, int port, CancellationToken cancellationToken);
+    public delegate Task<(ConnectCode Result, Stream? Stream)> ConnectionHandler(ConnectMethod method, AddressType type, string address, ushort port, CancellationToken cancellationToken);
 
     public class Socks5ServerOptions
     {

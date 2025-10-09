@@ -4,6 +4,6 @@ namespace Abaddax.Socks5.Protocol.Messages
 {
     internal record struct AuthenticationResponse
     {
-        public AuthenticationMethod AuthenticationMethod;
+        public AuthenticationMethod AuthenticationMethod { get; set; }
     }
 }

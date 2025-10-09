@@ -61,11 +61,11 @@ namespace Abaddax.Socks5.Authentication
         }
 
         public IEnumerable<AuthenticationMethod> SupportedMethods { get; } = new AuthenticationMethod[] { AuthenticationMethod.UsernamePassword };
-        public async Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
+        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             if (methods?.Any(x => x == AuthenticationMethod.UsernamePassword) ?? false)
-                return AuthenticationMethod.UsernamePassword;
-            return null;
+                return Task.FromResult<AuthenticationMethod?>(AuthenticationMethod.UsernamePassword);
+            return Task.FromResult<AuthenticationMethod?>(null);
         }
         public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {

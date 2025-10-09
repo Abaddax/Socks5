@@ -61,7 +61,7 @@ namespace Abaddax.Socks5
 
         public AddressType AddressType { get; private set; } = AddressType.IPv4;
         public string Address { get; private set; } = "0.0.0.0";
-        public int Port { get; private set; } = 0;
+        public ushort Port { get; private set; } = 0;
 
 
         public IEnumerable<Socks5ConnectionLog> ConnectionLog

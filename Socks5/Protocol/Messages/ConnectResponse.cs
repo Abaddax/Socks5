@@ -4,9 +4,9 @@ namespace Abaddax.Socks5.Protocol.Messages
 {
     internal record struct ConnectResponse
     {
-        public ConnectCode ConnectCode;
-        public AddressType AddressType;
-        public string Address;
-        public int Port;
+        public ConnectCode ConnectCode { get; set; }
+        public AddressType AddressType { get; set; }
+        public string Address { get; set; }
+        public ushort Port { get; set; }
     }
 }

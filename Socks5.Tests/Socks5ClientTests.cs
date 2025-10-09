@@ -9,8 +9,8 @@ namespace Abaddax.Socks5.Tests
     [NonParallelizable]
     public class Socks5ClientTests
     {
-        const int _localPort = 11080;
-        const int _remotePort = 12345;
+        const ushort _localPort = 61080;
+        const ushort _remotePort = 54321;
 
         TcpListener _listener;
         Socks5ServerOptions _serverOptions;
@@ -76,7 +76,7 @@ namespace Abaddax.Socks5.Tests
             using var client = new TcpClient("127.0.0.1", _localPort);
             using var server = await serverTask;
 
-            using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = clientOptions };
+            using var socksClient = new Socks5ClientProtocol(client.GetStream(), true) { Options = clientOptions };
             using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = _serverOptions };
 
             var acceptTask = socksServer.AcceptAsync();

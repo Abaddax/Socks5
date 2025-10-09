@@ -42,7 +42,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
                         var address = IPAddress.Parse(message.Address);
                         if (!address.TryWriteBytes(destination.Slice(4, 4), out _))
                             throw new Exception("Failed to parse IPv4");
-                        BinaryPrimitives.WriteInt16BigEndian(destination.Slice(8, 2), (short)message.Port);
+                        BinaryPrimitives.WriteUInt16BigEndian(destination.Slice(8, 2), message.Port);
                         break;
                     }
                 case AddressType.DomainName:
@@ -50,7 +50,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
                         destination[4] = (byte)message.Address.Length;
                         if (!Encoding.UTF8.TryGetBytes(message.Address, destination.Slice(5, message.Address.Length), out _))
                             throw new Exception("Failed to parse domain-name");
-                        BinaryPrimitives.WriteInt16BigEndian(destination.Slice(5 + message.Address.Length, 2), (short)message.Port);
+                        BinaryPrimitives.WriteUInt16BigEndian(destination.Slice(5 + message.Address.Length, 2), message.Port);
                         break;
                     }
                 case AddressType.IPv6:
@@ -58,7 +58,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
                         var address = IPAddress.Parse(message.Address);
                         if (!address.TryWriteBytes(destination.Slice(4, 16), out _))
                             throw new Exception("Failed to parse IPv6");
-                        BinaryPrimitives.WriteInt16BigEndian(destination.Slice(20, 2), (short)message.Port);
+                        BinaryPrimitives.WriteUInt16BigEndian(destination.Slice(20, 2), message.Port);
                         break;
                     }
                 default:
@@ -86,7 +86,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
                         await stream.ReadExactlyAsync(packet, cancellationToken);
                         var address = new IPAddress(packet.AsSpan(0, 4));
                         message.Address = address.ToString();
-                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(4, 2));
+                        message.Port = BinaryPrimitives.ReadUInt16BigEndian(packet.AsSpan(4, 2));
                         break;
                     }
                 case AddressType.DomainName:
@@ -97,7 +97,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
                         var packet = new byte[length + 2];
                         await stream.ReadExactlyAsync(packet, cancellationToken);
                         message.Address = Encoding.UTF8.GetString(packet.AsSpan(0, length));
-                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(length, 2));
+                        message.Port = BinaryPrimitives.ReadUInt16BigEndian(packet.AsSpan(length, 2));
                         break;
                     }
                 case AddressType.IPv6:
@@ -106,7 +106,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
                         await stream.ReadExactlyAsync(packet, cancellationToken);
                         var address = new IPAddress(packet.AsSpan(0, 16));
                         message.Address = address.ToString();
-                        message.Port = BinaryPrimitives.ReadInt16BigEndian(packet.AsSpan(16, 2));
+                        message.Port = BinaryPrimitives.ReadUInt16BigEndian(packet.AsSpan(16, 2));
                         break;
                     }
                 default:
