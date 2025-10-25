@@ -1,14 +1,15 @@
 ﻿using Abaddax.Socks5.Authentication;
+using Abaddax.Socks5.Protocol;
 using Abaddax.Socks5.Protocol.Enums;
 
 namespace Abaddax.Socks5
 {
-    public delegate Task<(ConnectCode Result, Stream? Stream)> ConnectionHandler(ConnectMethod method, AddressType type, string address, ushort port, CancellationToken cancellationToken);
+    public delegate Task<SocksConnectionResult> ConnectionHandler(ConnectMethod method, SocksEndpoint endpoint, CancellationToken cancellationToken);
 
     public class Socks5ServerOptions
     {
         private IAuthenticationHandler _authenticationHandler = new AuthenticationHandlerContainer();
-        private ConnectionHandler _connectHandler = (_, _, _, _, _) => Task.FromResult<(ConnectCode, Stream?)>((ConnectCode.HostUnreachable, null));
+        private ConnectionHandler _connectHandler = (_, _, _) => Task.FromResult(SocksConnectionResult.Failed(ConnectCode.HostUnreachable));
 
         public IAuthenticationHandler AuthenticationHandler
         {

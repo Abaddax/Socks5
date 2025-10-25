@@ -1,4 +1,5 @@
-﻿using Abaddax.Socks5.Protocol.Enums;
+﻿using Abaddax.Socks5.Protocol;
+using Abaddax.Socks5.Protocol.Enums;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
@@ -47,14 +48,14 @@ namespace Abaddax.Socks5.Tests
                     }, cancellationToken);
                     return tlsStream;
                 }, [0])
-                .WithConnectionHandler(async (method, type, address, port, _) =>
+                .WithConnectionHandler(async (method, endpoint, _) =>
                 {
                     if (method != ConnectMethod.TCPConnect)
-                        return (ConnectCode.NotAllowedByRuleset, null);
-                    _addressType = type;
-                    _address = address;
-                    _port = port;
-                    return (ConnectCode.Succeeded, new MemoryStream());
+                        return SocksConnectionResult.Failed(ConnectCode.NotAllowedByRuleset);
+                    _addressType = endpoint.AddressType;
+                    _address = endpoint.Address;
+                    _port = endpoint.Port;
+                    return SocksConnectionResult.Succeeded(new MemoryStream(), endpoint with { Port = 12345 });
                 });
         }
 
@@ -84,14 +85,18 @@ namespace Abaddax.Socks5.Tests
 
             await Task.WhenAll(connectTask, acceptTask);
 
-            Assert.That(socksClient.AddressType, Is.EqualTo(AddressType.IPv4));
-            Assert.That(socksClient.Address, Is.EqualTo("127.0.0.1"));
-            Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
+            Assert.That(socksClient.RemoteEndpoint.AddressType, Is.EqualTo(AddressType.IPv4));
+            Assert.That(socksClient.RemoteEndpoint.Address, Is.EqualTo("127.0.0.1"));
+            Assert.That(socksClient.RemoteEndpoint.Port, Is.EqualTo(_remotePort));
 
+            Assert.That(socksClient.LocalEndpoint, Is.Not.EqualTo(SocksEndpoint.Invalid));
 
             Assert.That(_addressType, Is.EqualTo(AddressType.IPv4));
             Assert.That(_address, Is.EqualTo("127.0.0.1"));
             Assert.That(_port, Is.EqualTo(_remotePort));
+
+            Assert.That(socksClient.LocalEndpoint, Is.EqualTo(socksServer.LocalEndpoint));
+            Assert.That(socksClient.RemoteEndpoint, Is.EqualTo(socksServer.RemoteEndpoint));
 
             Assert.That(socksClient.Stream, Is.Not.Null);
 
@@ -117,9 +122,11 @@ namespace Abaddax.Socks5.Tests
 
             await Task.WhenAll(connectTask, acceptTask);
 
-            Assert.That(socksClient.AddressType, Is.EqualTo(AddressType.IPv6));
-            Assert.That(socksClient.Address, Is.EqualTo("::1"));
-            Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
+            Assert.That(socksClient.RemoteEndpoint.AddressType, Is.EqualTo(AddressType.IPv6));
+            Assert.That(socksClient.RemoteEndpoint.Address, Is.EqualTo("::1"));
+            Assert.That(socksClient.RemoteEndpoint.Port, Is.EqualTo(_remotePort));
+
+            Assert.That(socksClient.LocalEndpoint, Is.Not.EqualTo(SocksEndpoint.Invalid));
 
             Assert.That(_addressType, Is.EqualTo(AddressType.IPv6));
             Assert.That(_address, Is.EqualTo("::1"));
@@ -127,6 +134,9 @@ namespace Abaddax.Socks5.Tests
 
             Assert.That(_clientUsername, Is.EqualTo("user123"));
             Assert.That(_clientPassword, Is.EqualTo("password123"));
+
+            Assert.That(socksClient.LocalEndpoint, Is.EqualTo(socksServer.LocalEndpoint));
+            Assert.That(socksClient.RemoteEndpoint, Is.EqualTo(socksServer.RemoteEndpoint));
 
             Assert.That(socksClient.Stream, Is.Not.Null);
 
@@ -160,13 +170,18 @@ namespace Abaddax.Socks5.Tests
 
             await Task.WhenAll(connectTask, acceptTask);
 
-            Assert.That(socksClient.AddressType, Is.EqualTo(AddressType.DomainName));
-            Assert.That(socksClient.Address, Is.EqualTo("localhost"));
-            Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
+            Assert.That(socksClient.RemoteEndpoint.AddressType, Is.EqualTo(AddressType.DomainName));
+            Assert.That(socksClient.RemoteEndpoint.Address, Is.EqualTo("localhost"));
+            Assert.That(socksClient.RemoteEndpoint.Port, Is.EqualTo(_remotePort));
+
+            Assert.That(socksClient.LocalEndpoint, Is.Not.EqualTo(SocksEndpoint.Invalid));
 
             Assert.That(_addressType, Is.EqualTo(AddressType.DomainName));
             Assert.That(_address, Is.EqualTo("localhost"));
             Assert.That(_port, Is.EqualTo(_remotePort));
+
+            Assert.That(socksClient.LocalEndpoint, Is.EqualTo(socksServer.LocalEndpoint));
+            Assert.That(socksClient.RemoteEndpoint, Is.EqualTo(socksServer.RemoteEndpoint));
 
             Assert.That(socksClient.Stream, Is.Not.Null);
 
@@ -203,9 +218,7 @@ namespace Abaddax.Socks5.Tests
             Assert.ThrowsAsync(Is.Not.Null, async () => await acceptTask);
             Assert.ThrowsAsync(Is.Not.Null, async () => await connectTask);
 
-            Assert.That(socksClient.AddressType, Is.EqualTo(AddressType.IPv4));
-            Assert.That(socksClient.Address, Is.EqualTo("0.0.0.0"));
-            Assert.That(socksClient.Port, Is.EqualTo(0));
+            Assert.That(socksClient.RemoteEndpoint, Is.EqualTo(SocksEndpoint.Invalid));
 
             Assert.That(_addressType, Is.Null);
             Assert.That(_address, Is.Null);
@@ -229,15 +242,15 @@ namespace Abaddax.Socks5.Tests
                         return true;
                     return false;
                 })
-                .WithConnectionHandler(async (method, type, address, port, _) =>
+                .WithConnectionHandler(async (method, endpoint, _) =>
                 {
-                    return (ConnectCode.Succeeded, new MemoryStream());
+                    return SocksConnectionResult.Succeeded(new MemoryStream(), endpoint);
                 });
             var serverOptions2 = new Socks5ServerOptions()
                 .WithNoAuthenticationRequired()
-                .WithConnectionHandler(async (method, type, addr, p, _) =>
+                .WithConnectionHandler(async (method, endpoint, _) =>
                 {
-                    return (ConnectCode.Succeeded, new MemoryStream());
+                    return SocksConnectionResult.Succeeded(new MemoryStream(), endpoint);
                 });
 
             //Option 1
@@ -254,9 +267,9 @@ namespace Abaddax.Socks5.Tests
 
                 await Task.WhenAll(connectTask, acceptTask);
 
-                Assert.That(socksClient.AddressType, Is.EqualTo(AddressType.IPv4));
-                Assert.That(socksClient.Address, Is.EqualTo("127.0.0.1"));
-                Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
+                Assert.That(socksClient.RemoteEndpoint.AddressType, Is.EqualTo(AddressType.IPv4));
+                Assert.That(socksClient.RemoteEndpoint.Address, Is.EqualTo("127.0.0.1"));
+                Assert.That(socksClient.RemoteEndpoint.Port, Is.EqualTo(_remotePort));
 
                 await ShouldProxyData(socksClient, socksServer);
             }
@@ -275,9 +288,9 @@ namespace Abaddax.Socks5.Tests
 
                 await Task.WhenAll(connectTask, acceptTask);
 
-                Assert.That(socksClient.AddressType, Is.EqualTo(AddressType.IPv4));
-                Assert.That(socksClient.Address, Is.EqualTo("127.0.0.1"));
-                Assert.That(socksClient.Port, Is.EqualTo(_remotePort));
+                Assert.That(socksClient.RemoteEndpoint.AddressType, Is.EqualTo(AddressType.IPv4));
+                Assert.That(socksClient.RemoteEndpoint.Address, Is.EqualTo("127.0.0.1"));
+                Assert.That(socksClient.RemoteEndpoint.Port, Is.EqualTo(_remotePort));
 
                 await ShouldProxyData(socksClient, socksServer);
             }

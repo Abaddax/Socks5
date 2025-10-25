@@ -59,10 +59,8 @@ namespace Abaddax.Socks5
         }
         public bool IsProxyActive => _proxy?.Active ?? false;
 
-        public AddressType AddressType { get; private set; } = AddressType.IPv4;
-        public string Address { get; private set; } = "0.0.0.0";
-        public ushort Port { get; private set; } = 0;
-
+        public SocksEndpoint RemoteEndpoint { get; private set; } = SocksEndpoint.Invalid;
+        public SocksEndpoint LocalEndpoint { get; private set; } = SocksEndpoint.Invalid;
 
         public IEnumerable<Socks5ConnectionLog> ConnectionLog
         {
@@ -96,7 +94,6 @@ namespace Abaddax.Socks5
                     yield return new Socks5ConnectionLog() { Role = lastRole.Value, Data = data };
             }
         }
-
 
         public async Task AcceptAsync(CancellationToken cancellationToken = default)
         {
@@ -156,38 +153,42 @@ namespace Abaddax.Socks5
 
                 _state = ServerState.Connection;
 
-                ConnectCode code;
+                SocksConnectionResult connectResult;
                 //Read connect-request
                 {
                     var conRequest = await ConnectRequestParser.Shared.ReadAsync(handshakeStream, cancellationToken);
 
-                    AddressType = conRequest.AddressType;
-                    Address = conRequest.Address;
-                    Port = conRequest.Port;
+                    RemoteEndpoint = new SocksEndpoint()
+                    {
+                        AddressType = conRequest.AddressType,
+                        Address = conRequest.Address,
+                        Port = conRequest.Port
+                    };
                     try
                     {
-                        (code, _remoteStream) = await Options.ConnectHandler.Invoke(conRequest.ConnectMethod, conRequest.AddressType, conRequest.Address, conRequest.Port, cancellationToken);
+                        connectResult = await Options.ConnectHandler.Invoke(conRequest.ConnectMethod, RemoteEndpoint, cancellationToken);
                     }
                     catch (Exception ex)
                     {
-                        code = ConnectCode.SocksFailure;
-                        _remoteStream = null;
+                        connectResult = SocksConnectionResult.Failed(ConnectCode.SocksFailure);
                     }
+                    _remoteStream = connectResult.Stream;
+                    LocalEndpoint = connectResult.LocalEndpoint;
                 }
                 //Send connect-response
                 {
                     var conResponse = new ConnectResponse()
                     {
-                        ConnectCode = code,
-                        AddressType = AddressType,
-                        Address = Address,
-                        Port = Port,
+                        ConnectCode = connectResult.Result,
+                        AddressType = connectResult.Success ? LocalEndpoint.AddressType : RemoteEndpoint.AddressType,
+                        Address = connectResult.Success ? LocalEndpoint.Address : RemoteEndpoint.Address,
+                        Port = connectResult.Success ? LocalEndpoint.Port : RemoteEndpoint.Port,
                     };
                     await ConnectResponseParser.Shared.WriteAsync(handshakeStream, conResponse, cancellationToken);
-                    if (code != ConnectCode.Succeeded)
+                    if (!connectResult.Success)
                     {
                         _stream.Close();
-                        throw new Exception($"Unable to connect to remote. Code: {code}");
+                        throw new Exception($"Unable to connect to remote. Code: {connectResult.Result}");
                     }
                 }
 
@@ -196,6 +197,7 @@ namespace Abaddax.Socks5
             catch (Exception)
             {
                 _stream.Close();
+                _remoteStream?.Close();
                 throw;
             }
         }

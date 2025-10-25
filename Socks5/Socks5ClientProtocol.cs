@@ -44,11 +44,8 @@ namespace Abaddax.Socks5
             }
         }
 
-
-        public AddressType AddressType { get; private set; } = AddressType.IPv4;
-        public string Address { get; private set; } = "0.0.0.0";
-        public int Port { get; private set; } = 0;
-
+        public SocksEndpoint RemoteEndpoint { get; private set; } = SocksEndpoint.Invalid;
+        public SocksEndpoint LocalEndpoint { get; private set; } = SocksEndpoint.Invalid;
 
         public IEnumerable<Socks5ConnectionLog> ConnectionLog
         {
@@ -83,9 +80,22 @@ namespace Abaddax.Socks5
             }
         }
 
-        public async Task ConnectAsync(AddressType type, string address, ushort port,
+        public Task ConnectAsync(AddressType type, string address, ushort port,
             CancellationToken cancellationToken = default)
         {
+            return ConnectAsync(new SocksEndpoint()
+            {
+                AddressType = type,
+                Address = address,
+                Port = port
+            },
+            cancellationToken);
+        }
+        public async Task ConnectAsync(SocksEndpoint remoteEndpoint,
+            CancellationToken cancellationToken = default)
+        {
+            if (remoteEndpoint.AddressType == AddressType.Unknown)
+                throw new ArgumentException($"Endpoint is of type {nameof(AddressType.Unknown)}", nameof(remoteEndpoint));
             if (_state != ClientState.None)
                 throw new InvalidOperationException("This method can only be called once");
 
@@ -150,9 +160,9 @@ namespace Abaddax.Socks5
                     var conRequest = new ConnectRequest()
                     {
                         ConnectMethod = Options.ConnectMethod,
-                        AddressType = type,
-                        Address = address,
-                        Port = port
+                        AddressType = remoteEndpoint.AddressType,
+                        Address = remoteEndpoint.Address,
+                        Port = remoteEndpoint.Port,
                     };
                     await ConnectRequestParser.Shared.WriteAsync(handshakeStream, conRequest, cancellationToken);
                 }
@@ -163,19 +173,16 @@ namespace Abaddax.Socks5
                     {
                         throw new Exception($"Connect failed with code: {conResponse.ConnectCode}");
                     }
-                    if (Options.ValidateReceivedEndpoint &&
-                        (conResponse.AddressType != type ||
-                        conResponse.Address != address ||
-                        conResponse.Port != port))
+
+                    LocalEndpoint = new SocksEndpoint()
                     {
-                        throw new Exception($"Received unknown connection-endpoint {conResponse.AddressType}//{conResponse.Address}:{conResponse.Port}. Expected: {type}//{address}:{port}");
-                    }
+                        AddressType = conResponse.AddressType,
+                        Address = conResponse.Address,
+                        Port = conResponse.Port
+                    };
                 }
 
-                AddressType = type;
-                Address = address;
-                Port = port;
-
+                RemoteEndpoint = remoteEndpoint;
                 _state = ClientState.Connected;
             }
             catch (Exception)

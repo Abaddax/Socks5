@@ -18,7 +18,6 @@ namespace Abaddax.Socks5
             get => _connectMethod;
             set => _connectMethod = value;
         }
-        public bool ValidateReceivedEndpoint { get; set; } = true;
     }
 
     public static class Socks5ClientOptionsBuilder
