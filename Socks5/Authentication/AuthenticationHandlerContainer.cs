@@ -1,11 +1,11 @@
-﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Socks5.Protocol.Enums;
 using System.Collections;
 
 namespace Abaddax.Socks5.Authentication
 {
     internal sealed class AuthenticationHandlerContainer : IAuthenticationHandler, IEnumerable<IAuthenticationHandler>
     {
-        readonly List<IAuthenticationHandler> _authenticationHandler = new();
+        private readonly List<IAuthenticationHandler> _authenticationHandler = new();
 
         public void Add(IAuthenticationHandler authenticationHandler)
         {
@@ -13,19 +13,19 @@ namespace Abaddax.Socks5.Authentication
         }
 
         #region IAuthenticationHandler
-        IEnumerable<AuthenticationMethod> IAuthenticationHandler.SupportedMethods =>
-           _authenticationHandler.SelectMany(x => x.SupportedMethods);
-        Task<AuthenticationMethod?> IAuthenticationHandler.SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
+        IEnumerable<AuthenticationMethod> IAuthenticationHandler.SupportedMethods
+            => _authenticationHandler.SelectMany(x => x.SupportedMethods);
+        Task<AuthenticationMethod?> IAuthenticationHandler.SelectAuthenticationMethodAsync(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             var handler = _authenticationHandler.FirstOrDefault(x => x.SupportedMethods.Intersect(methods).Any());
             if (handler == null)
                 return Task.FromResult<AuthenticationMethod?>(null);
-            return handler.SelectAuthenticationMethod(methods, cancellationToken);
+            return handler.SelectAuthenticationMethodAsync(methods, cancellationToken);
         }
-        Task<Stream> IAuthenticationHandler.AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
+        Task<Stream> IAuthenticationHandler.AuthenticationHandlerAsync(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             var handler = _authenticationHandler.First(x => x.SupportedMethods.Contains(method));
-            return handler.AuthenticationHandler(stream, method, cancellationToken);
+            return handler.AuthenticationHandlerAsync(stream, method, cancellationToken);
         }
         #endregion
 

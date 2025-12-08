@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Socks5.Protocol.Enums;
 
 namespace Abaddax.Socks5.Protocol.Messages
 {

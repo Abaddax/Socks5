@@ -72,7 +72,7 @@ namespace Abaddax.Socks5.Tests
                     await connection.ConnectAsync(endpoint.Address, endpoint.Port, cancellationToken);
                     _remoteClient = await serverTask;
 
-                    return SocksConnectionResult.Succeeded(connection.GetStream(), connection.Client.LocalEndPoint);
+                    return SocksConnectionResult.Succeeded(connection.GetStream(), (SocksEndpoint)connection.Client.LocalEndPoint);
                 });
 
             var serverTask = _listener.AcceptTcpClientAsync();
@@ -125,7 +125,7 @@ namespace Abaddax.Socks5.Tests
                     await connection.ConnectAsync(endpoint.Address, endpoint.Port, cancellationToken);
                     _remoteClient = await serverTask;
 
-                    return SocksConnectionResult.Succeeded(connection.GetStream(), connection.Client.LocalEndPoint);
+                    return SocksConnectionResult.Succeeded(connection.GetStream(), (SocksEndpoint)connection.Client.LocalEndPoint);
                 });
 
             var serverTask = _listener.AcceptTcpClientAsync();
@@ -181,7 +181,7 @@ namespace Abaddax.Socks5.Tests
                      await connection.ConnectAsync(endpoint.Address, endpoint.Port, cancellationToken);
                      _remoteClient = await serverTask;
 
-                     return SocksConnectionResult.Succeeded(connection.GetStream(), connection.Client.LocalEndPoint);
+                     return SocksConnectionResult.Succeeded(connection.GetStream(), (SocksEndpoint)connection.Client.LocalEndPoint);
                  });
 
             var serverTask = _listener.AcceptTcpClientAsync();
@@ -264,7 +264,7 @@ namespace Abaddax.Socks5.Tests
                    await connection.ConnectAsync(endpoint.Address, endpoint.Port, cancellationToken);
                    _remoteClient = await serverTask;
 
-                   return SocksConnectionResult.Succeeded(connection.GetStream(), connection.Client.LocalEndPoint);
+                   return SocksConnectionResult.Succeeded(connection.GetStream(), (SocksEndpoint)connection.Client.LocalEndPoint);
                });
 
             var serverTask = _listener.AcceptTcpClientAsync();
@@ -313,7 +313,7 @@ namespace Abaddax.Socks5.Tests
                    await connection.ConnectAsync(endpoint.Address, endpoint.Port, cancellationToken);
                    _remoteClient = await serverTask;
 
-                   return SocksConnectionResult.Succeeded(connection.GetStream(), connection.Client.LocalEndPoint);
+                   return SocksConnectionResult.Succeeded(connection.GetStream(), (SocksEndpoint)connection.Client.LocalEndPoint);
                });
 
             var serverTask = _listener.AcceptTcpClientAsync();
@@ -362,7 +362,7 @@ namespace Abaddax.Socks5.Tests
                     await connection.ConnectAsync(endpoint.Address, endpoint.Port, cancellationToken);
                     _remoteClient = await serverTask;
 
-                    return SocksConnectionResult.Succeeded(connection.GetStream(), connection.Client.LocalEndPoint);
+                    return SocksConnectionResult.Succeeded(connection.GetStream(), (SocksEndpoint)connection.Client.LocalEndPoint);
                 });
 
             var clientOptions1 = new Socks5ClientOptions()

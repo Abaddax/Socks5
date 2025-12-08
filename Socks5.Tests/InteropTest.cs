@@ -134,7 +134,7 @@ namespace Abaddax.Socks5.Tests
                     await connection.ConnectAsync(endpoint.Address, endpoint.Port, cancellationToken);
                     _remoteClient = await serverTask;
 
-                    return SocksConnectionResult.Succeeded(connection.GetStream(), connection.Client.LocalEndPoint);
+                    return SocksConnectionResult.Succeeded(connection.GetStream(), (SocksEndpoint)connection.Client.LocalEndPoint);
                 });
 
             Socks5CreateOption option = new()
@@ -204,7 +204,7 @@ namespace Abaddax.Socks5.Tests
                     await connection.ConnectAsync(endpoint.Address, endpoint.Port, cancellationToken);
                     _remoteClient = await serverTask;
 
-                    return SocksConnectionResult.Succeeded(connection.GetStream(), connection.Client.LocalEndPoint);
+                    return SocksConnectionResult.Succeeded(connection.GetStream(), (SocksEndpoint)connection.Client.LocalEndPoint);
                 });
 
             UsernamePassword userPass = new()

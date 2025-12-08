@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Socks5.Protocol.Enums;
 using Abaddax.Utilities.IO;
 using System.Buffers.Binary;
 
@@ -21,23 +21,24 @@ namespace Abaddax.Socks5.Authentication
             _isServer = isServer;
         }
 
-        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
+        public Task<AuthenticationMethod?> SelectAuthenticationMethodAsync(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             if (methods?.Any(x => x == AuthenticationMethod.SecureSocketsLayer) ?? false)
                 return Task.FromResult<AuthenticationMethod?>(AuthenticationMethod.SecureSocketsLayer);
             return Task.FromResult<AuthenticationMethod?>(null);
         }
-        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
+        public async Task<Stream> AuthenticationHandlerAsync(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             if (method != AuthenticationMethod.SecureSocketsLayer)
                 throw new NotSupportedException();
-
+#pragma warning disable CA2000 //Ownership transfer
             //Initial handshake
             var socksStream = new Socks5CryptoStream(stream)
             {
                 SubnegotiationVersion = 0x01,
                 TLSCommand = Socks5CryptoStream.TlsCommand.InitalHandshake
             };
+#pragma warning restore CA2000
 
             stream = await _handshakeHandler.Invoke(socksStream, cancellationToken);
 
@@ -84,8 +85,7 @@ namespace Abaddax.Socks5.Authentication
             public TlsCommand TLSCommand { get; set; } = TlsCommand.InitalHandshake;
             public Socks5CryptoStream(Stream workStream)
             {
-                if (workStream == null)
-                    throw new ArgumentNullException(nameof(workStream));
+                ArgumentNullException.ThrowIfNull(workStream);
                 _innerStream = workStream;
             }
 
@@ -188,7 +188,7 @@ namespace Abaddax.Socks5.Authentication
                     header[3] = 0;
                     _innerStream.Write(header);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     //Dont care
                 }
@@ -214,12 +214,12 @@ namespace Abaddax.Socks5.Authentication
             _ssl = new SecureSocketsLayer(handshakeHandler, specificOptions, isServer: true);
         }
 
-        public IEnumerable<AuthenticationMethod> SupportedMethods =>
-            _ssl.SupportedMethods;
-        public Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken) =>
-            _ssl.AuthenticationHandler(stream, method, cancellationToken);
-        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken) =>
-            _ssl.SelectAuthenticationMethod(methods, cancellationToken);
+        public IEnumerable<AuthenticationMethod> SupportedMethods
+            => _ssl.SupportedMethods;
+        public Task<Stream> AuthenticationHandlerAsync(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
+            => _ssl.AuthenticationHandlerAsync(stream, method, cancellationToken);
+        public Task<AuthenticationMethod?> SelectAuthenticationMethodAsync(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
+            => _ssl.SelectAuthenticationMethodAsync(methods, cancellationToken);
     }
 
     public sealed class SecureSocketsLayerClient : IAuthenticationHandler
@@ -231,12 +231,12 @@ namespace Abaddax.Socks5.Authentication
             _ssl = new SecureSocketsLayer(handshakeHandler, specificOptions, isServer: false);
         }
 
-        public IEnumerable<AuthenticationMethod> SupportedMethods =>
-            _ssl.SupportedMethods;
-        public Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken) =>
-            _ssl.AuthenticationHandler(stream, method, cancellationToken);
-        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken) =>
-            _ssl.SelectAuthenticationMethod(methods, cancellationToken);
+        public IEnumerable<AuthenticationMethod> SupportedMethods
+            => _ssl.SupportedMethods;
+        public Task<Stream> AuthenticationHandlerAsync(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
+            => _ssl.AuthenticationHandlerAsync(stream, method, cancellationToken);
+        public Task<AuthenticationMethod?> SelectAuthenticationMethodAsync(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
+            => _ssl.SelectAuthenticationMethodAsync(methods, cancellationToken);
     }
 
 }

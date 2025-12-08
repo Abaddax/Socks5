@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Socks5.Protocol.Enums;
 using Abaddax.Utilities.Network;
 using System.Text;
 
@@ -21,13 +21,13 @@ namespace Abaddax.Socks5.Authentication
         }
 
         public IEnumerable<AuthenticationMethod> SupportedMethods { get; } = [AuthenticationMethod.UsernamePassword];
-        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
+        public Task<AuthenticationMethod?> SelectAuthenticationMethodAsync(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             if (methods?.Any(x => x == AuthenticationMethod.UsernamePassword) ?? false)
                 return Task.FromResult<AuthenticationMethod?>(AuthenticationMethod.UsernamePassword);
             return Task.FromResult<AuthenticationMethod?>(null);
         }
-        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
+        public async Task<Stream> AuthenticationHandlerAsync(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             if (method != AuthenticationMethod.UsernamePassword)
                 throw new NotSupportedException();
@@ -45,7 +45,9 @@ namespace Abaddax.Socks5.Authentication
 
             if (request.SubnegotiationVersion != response.SubnegotiationVersion ||
                 response.Status != 0)
+            {
                 throw new Exception("Failed to authenticate");
+            }
 
             return stream;
         }
@@ -61,13 +63,13 @@ namespace Abaddax.Socks5.Authentication
         }
 
         public IEnumerable<AuthenticationMethod> SupportedMethods { get; } = new AuthenticationMethod[] { AuthenticationMethod.UsernamePassword };
-        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
+        public Task<AuthenticationMethod?> SelectAuthenticationMethodAsync(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             if (methods?.Any(x => x == AuthenticationMethod.UsernamePassword) ?? false)
                 return Task.FromResult<AuthenticationMethod?>(AuthenticationMethod.UsernamePassword);
             return Task.FromResult<AuthenticationMethod?>(null);
         }
-        public async Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
+        public async Task<Stream> AuthenticationHandlerAsync(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             if (method != AuthenticationMethod.UsernamePassword)
                 throw new NotSupportedException();
@@ -80,7 +82,7 @@ namespace Abaddax.Socks5.Authentication
             {
                 allow = await _loginhandler.Invoke(request.Username, request.Password, cancellationToken);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 allow = false;
             }

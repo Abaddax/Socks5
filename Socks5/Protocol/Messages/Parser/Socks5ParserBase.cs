@@ -1,4 +1,4 @@
-﻿using Abaddax.Utilities.Buffers;
+using Abaddax.Utilities.Buffers;
 using Abaddax.Utilities.Network;
 using Abaddax.Utilities.Threading.Tasks;
 

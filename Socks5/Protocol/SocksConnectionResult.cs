@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Socks5.Protocol.Enums;
 
 namespace Abaddax.Socks5.Protocol
 {
@@ -33,8 +33,7 @@ namespace Abaddax.Socks5.Protocol
         }
         public static SocksConnectionResult Succeeded(Stream stream, SocksEndpoint localEndpoint)
         {
-            if (stream == null)
-                throw new ArgumentNullException(nameof(stream));
+            ArgumentNullException.ThrowIfNull(stream);
             if (localEndpoint.AddressType == AddressType.Unknown)
                 throw new ArgumentException($"Endpoint is of type {nameof(AddressType.Unknown)}", nameof(localEndpoint));
 

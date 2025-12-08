@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Socks5.Protocol.Enums;
 using System.Net;
 using System.Net.Sockets;
 
@@ -17,7 +17,7 @@ namespace Abaddax.Socks5.Protocol
             Port = 0
         };
 
-        public static implicit operator SocksEndpoint(EndPoint? endPoint)
+        public static explicit operator SocksEndpoint(EndPoint? endPoint)
         {
             return endPoint switch
             {

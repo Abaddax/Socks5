@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Authentication;
+using Abaddax.Socks5.Authentication;
 using Abaddax.Socks5.Protocol.Enums;
 
 namespace Abaddax.Socks5
@@ -6,28 +6,20 @@ namespace Abaddax.Socks5
     public class Socks5ClientOptions
     {
         private IAuthenticationHandler _authenticationHandler = new AuthenticationHandlerContainer();
-        private ConnectMethod _connectMethod = ConnectMethod.TCPConnect;
-
         public IAuthenticationHandler AuthenticationHandler
         {
             get => _authenticationHandler;
             set => _authenticationHandler = value ?? throw new ArgumentNullException(nameof(AuthenticationHandler));
         }
-        public ConnectMethod ConnectMethod
-        {
-            get => _connectMethod;
-            set => _connectMethod = value;
-        }
+        public ConnectMethod ConnectMethod { get; set; } = ConnectMethod.TCPConnect;
     }
 
     public static class Socks5ClientOptionsBuilder
     {
         public static Socks5ClientOptions WithAuthenticationHandler(this Socks5ClientOptions options, IAuthenticationHandler authenticationHandler)
         {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-            if (authenticationHandler == null)
-                throw new ArgumentNullException(nameof(authenticationHandler));
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(authenticationHandler);
 
             if (options.AuthenticationHandler == null ||
                 options.AuthenticationHandler.GetType() == authenticationHandler.GetType())
@@ -61,8 +53,7 @@ namespace Abaddax.Socks5
 
         public static Socks5ClientOptions WithConnectMethod(this Socks5ClientOptions options, ConnectMethod connectMethod)
         {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
+            ArgumentNullException.ThrowIfNull(options);
             options.ConnectMethod = connectMethod;
             return options;
         }

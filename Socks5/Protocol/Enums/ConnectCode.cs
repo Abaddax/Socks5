@@ -1,4 +1,4 @@
-﻿namespace Abaddax.Socks5.Protocol.Enums
+namespace Abaddax.Socks5.Protocol.Enums
 {
     public enum ConnectCode : byte
     {

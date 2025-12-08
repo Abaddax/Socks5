@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Socks5.Protocol.Enums;
 
 namespace Abaddax.Socks5.Authentication
 {
@@ -6,11 +6,11 @@ namespace Abaddax.Socks5.Authentication
     {
         public IEnumerable<AuthenticationMethod> SupportedMethods { get; } = [AuthenticationMethod.NoAcceptableMethods];
 
-        public Task<AuthenticationMethod?> SelectAuthenticationMethod(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
+        public Task<AuthenticationMethod?> SelectAuthenticationMethodAsync(IEnumerable<AuthenticationMethod> methods, CancellationToken cancellationToken)
         {
             return Task.FromResult<AuthenticationMethod?>(AuthenticationMethod.NoAcceptableMethods);
         }
-        public Task<Stream> AuthenticationHandler(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
+        public Task<Stream> AuthenticationHandlerAsync(Stream stream, AuthenticationMethod method, CancellationToken cancellationToken)
         {
             throw new NotSupportedException();
         }

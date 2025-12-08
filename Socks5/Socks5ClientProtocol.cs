@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol;
+using Abaddax.Socks5.Protocol;
 using Abaddax.Socks5.Protocol.Enums;
 using Abaddax.Socks5.Protocol.Messages;
 using Abaddax.Socks5.Protocol.Messages.Parser;
@@ -99,29 +99,31 @@ namespace Abaddax.Socks5
             if (_state != ClientState.None)
                 throw new InvalidOperationException("This method can only be called once");
 
+            var handshakeStream = _stream;
             try
             {
-                var handshakeStream = _stream;
                 //Log data while handshake is going on
                 if (_connectionLog != null)
                 {
                     _connectionLog.Clear();
-                    handshakeStream = new CallbackStream(
-                        (buffer, cancellationToken) =>
+#pragma warning disable CA2000 //Ownership transfer
+                    handshakeStream = new CallbackStream<Stream>(handshakeStream,
+                        (buffer, stream, cancellationToken) =>
                         {
-                            return new(_stream.ReadAsync(buffer, cancellationToken).AsTask().ContinueWith(x =>
+                            return new(stream.ReadAsync(buffer, cancellationToken).AsTask().ContinueWith(x =>
                             {
                                 if (_state != ClientState.Connected)
                                     _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Server, Data = buffer.ToArray() });
                                 return x.Result;
                             }, TaskContinuationOptions.NotOnFaulted));
                         },
-                        (buffer, cancellationToken) =>
+                        (buffer, stream, cancellationToken) =>
                         {
                             if (_state != ClientState.Connected)
                                 _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Client, Data = buffer.ToArray() });
-                            return _stream.WriteAsync(buffer, cancellationToken);
+                            return stream.WriteAsync(buffer, cancellationToken);
                         });
+#pragma warning restore CA2000
                 }
 
                 _state = ClientState.Authentication;
@@ -147,11 +149,18 @@ namespace Abaddax.Socks5
                 }
 
                 //Handle authentication
-                _stream = await Options.AuthenticationHandler.AuthenticationHandler(/*Do not log authentication!*/_stream, authMethod, cancellationToken);
+                _stream = await Options.AuthenticationHandler.AuthenticationHandlerAsync(/*Do not log authentication!*/_stream, authMethod, cancellationToken);
 
                 //Continue with current stream
-                if (_connectionLog == null)
+                if (_connectionLog != null &&
+                    handshakeStream is CallbackStream<Stream> callbackStream)
+                {
+                    callbackStream.UpdateState(_stream);
+                }
+                else
+                {
                     handshakeStream = _stream;
+                }
 
                 _state = ClientState.Connection;
 
@@ -187,15 +196,16 @@ namespace Abaddax.Socks5
             }
             catch (Exception)
             {
+                await handshakeStream.DisposeAsync();
                 _stream.Close();
                 throw;
             }
         }
 
-        public Task DisconnectAsync()
+        public async Task DisconnectAsync()
         {
-            _stream?.Dispose();
-            return Task.CompletedTask;
+            if (_stream != null)
+                await _stream.DisposeAsync();
         }
 
         #region IDisposable

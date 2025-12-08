@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol;
+using Abaddax.Socks5.Protocol;
 using Abaddax.Socks5.Protocol.Enums;
 using Abaddax.Socks5.Protocol.Messages;
 using Abaddax.Socks5.Protocol.Messages.Parser;
@@ -107,22 +107,24 @@ namespace Abaddax.Socks5
                 if (_connectionLog != null)
                 {
                     _connectionLog.Clear();
-                    handshakeStream = new CallbackStream(
-                        (buffer, cancellationToken) =>
+#pragma warning disable CA2000 //Ownership transfer
+                    handshakeStream = new CallbackStream<Stream>(handshakeStream,
+                        (buffer, stream, cancellationToken) =>
                         {
-                            return new(_stream.ReadAsync(buffer, cancellationToken).AsTask().ContinueWith(x =>
+                            return new(stream.ReadAsync(buffer, cancellationToken).AsTask().ContinueWith(x =>
                             {
                                 if (_state != ServerState.Connected)
                                     _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Client, Data = buffer.ToArray() });
                                 return x.Result;
                             }, TaskContinuationOptions.NotOnFaulted));
                         },
-                        (buffer, cancellationToken) =>
+                        (buffer, stream, cancellationToken) =>
                         {
                             if (_state != ServerState.Connected)
                                 _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Server, Data = buffer.ToArray() });
-                            return _stream.WriteAsync(buffer, cancellationToken);
+                            return stream.WriteAsync(buffer, cancellationToken);
                         });
+#pragma warning restore CA2000
                 }
 
                 _state = ServerState.Authentication;
@@ -131,7 +133,7 @@ namespace Abaddax.Socks5
                 //Read authentication-request
                 {
                     var authRequest = await AuthenticationRequestParser.Shared.ReadAsync(handshakeStream, cancellationToken);
-                    authMethod = await Options.AuthenticationHandler.SelectAuthenticationMethod(authRequest.AuthenticationMethods, cancellationToken) ?? AuthenticationMethod.NoAcceptableMethods;
+                    authMethod = await Options.AuthenticationHandler.SelectAuthenticationMethodAsync(authRequest.AuthenticationMethods, cancellationToken) ?? AuthenticationMethod.NoAcceptableMethods;
                 }
                 //Send authentication-response
                 {
@@ -145,11 +147,18 @@ namespace Abaddax.Socks5
                 }
 
                 //Handle authentication
-                _stream = await Options.AuthenticationHandler.AuthenticationHandler(/*Do not log authentication!*/_stream, authMethod, cancellationToken);
+                _stream = await Options.AuthenticationHandler.AuthenticationHandlerAsync(/*Do not log authentication!*/_stream, authMethod, cancellationToken);
 
                 //Continue with current stream
-                if (_connectionLog == null)
+                if (_connectionLog != null &&
+                    handshakeStream is CallbackStream<Stream> callbackStream)
+                {
+                    callbackStream.UpdateState(_stream);
+                }
+                else
+                {
                     handshakeStream = _stream;
+                }
 
                 _state = ServerState.Connection;
 
@@ -168,7 +177,7 @@ namespace Abaddax.Socks5
                     {
                         connectResult = await Options.ConnectHandler.Invoke(conRequest.ConnectMethod, RemoteEndpoint, cancellationToken);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         connectResult = SocksConnectionResult.Failed(ConnectCode.SocksFailure);
                     }
@@ -221,11 +230,12 @@ namespace Abaddax.Socks5
             }
         }
 
-        public Task DisconnectAsync()
+        public async Task DisconnectAsync()
         {
-            _remoteStream?.Dispose();
-            _stream?.Dispose();
-            return Task.CompletedTask;
+            if (_remoteStream != null)
+                await _remoteStream.DisposeAsync();
+            if (_stream != null)
+                await _stream.DisposeAsync();
         }
 
         #region IDisposable

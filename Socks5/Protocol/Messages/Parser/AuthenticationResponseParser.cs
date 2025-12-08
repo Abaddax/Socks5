@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol.Enums;
+using Abaddax.Socks5.Protocol.Enums;
 
 namespace Abaddax.Socks5.Protocol.Messages.Parser
 {
@@ -13,8 +13,7 @@ namespace Abaddax.Socks5.Protocol.Messages.Parser
         public override int Write(AuthenticationResponse message, Span<byte> destination)
         {
             var size = GetMessageSize(message);
-            if (destination.Length < size)
-                throw new ArgumentOutOfRangeException(nameof(destination));
+            ArgumentOutOfRangeException.ThrowIfLessThan(destination.Length, size);
 
             destination[0] = 0x05;
             destination[1] = (byte)message.AuthenticationMethod;

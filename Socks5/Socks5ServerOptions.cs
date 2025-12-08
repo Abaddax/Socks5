@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Authentication;
+using Abaddax.Socks5.Authentication;
 using Abaddax.Socks5.Protocol;
 using Abaddax.Socks5.Protocol.Enums;
 
@@ -10,7 +10,6 @@ namespace Abaddax.Socks5
     {
         private IAuthenticationHandler _authenticationHandler = new AuthenticationHandlerContainer();
         private ConnectionHandler _connectHandler = (_, _, _) => Task.FromResult(SocksConnectionResult.Failed(ConnectCode.HostUnreachable));
-
         public IAuthenticationHandler AuthenticationHandler
         {
             get => _authenticationHandler;
@@ -28,10 +27,8 @@ namespace Abaddax.Socks5
     {
         public static Socks5ServerOptions WithAuthenticationHandler(this Socks5ServerOptions options, IAuthenticationHandler authenticationHandler)
         {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-            if (authenticationHandler == null)
-                throw new ArgumentNullException(nameof(authenticationHandler));
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(authenticationHandler);
 
             if (options.AuthenticationHandler == null)
             {
@@ -64,10 +61,8 @@ namespace Abaddax.Socks5
 
         public static Socks5ServerOptions WithConnectionHandler(this Socks5ServerOptions options, ConnectionHandler connectHandler)
         {
-            if (options == null)
-                throw new ArgumentNullException(nameof(options));
-            if (connectHandler == null)
-                throw new ArgumentNullException(nameof(connectHandler));
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(connectHandler);
             options.ConnectHandler = connectHandler;
             return options;
         }
