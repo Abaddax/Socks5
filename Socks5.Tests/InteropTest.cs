@@ -1,4 +1,4 @@
-﻿using Abaddax.Socks5.Protocol;
+using Abaddax.Socks5.Protocol;
 using Abaddax.Socks5.Protocol.Enums;
 using Pipelines.Extensions;
 using Socks5.Clients;

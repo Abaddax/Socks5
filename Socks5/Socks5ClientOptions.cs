@@ -5,12 +5,11 @@ namespace Abaddax.Socks5
 {
     public class Socks5ClientOptions
     {
-        private IAuthenticationHandler _authenticationHandler = new AuthenticationHandlerContainer();
         public IAuthenticationHandler AuthenticationHandler
         {
-            get => _authenticationHandler;
-            set => _authenticationHandler = value ?? throw new ArgumentNullException(nameof(AuthenticationHandler));
-        }
+            get;
+            set => field = value ?? throw new ArgumentNullException(nameof(AuthenticationHandler));
+        } = new AuthenticationHandlerContainer();
         public ConnectMethod ConnectMethod { get; set; } = ConnectMethod.TCPConnect;
     }
 

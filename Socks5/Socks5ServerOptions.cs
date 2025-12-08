@@ -8,18 +8,16 @@ namespace Abaddax.Socks5
 
     public class Socks5ServerOptions
     {
-        private IAuthenticationHandler _authenticationHandler = new AuthenticationHandlerContainer();
-        private ConnectionHandler _connectHandler = (_, _, _) => Task.FromResult(SocksConnectionResult.Failed(ConnectCode.HostUnreachable));
         public IAuthenticationHandler AuthenticationHandler
         {
-            get => _authenticationHandler;
-            set => _authenticationHandler = value ?? throw new ArgumentNullException(nameof(AuthenticationHandler));
-        }
+            get;
+            set => field = value ?? throw new ArgumentNullException(nameof(AuthenticationHandler));
+        } = new AuthenticationHandlerContainer();
         public ConnectionHandler ConnectHandler
         {
-            get => _connectHandler;
-            set => _connectHandler = value ?? throw new ArgumentNullException(nameof(ConnectHandler));
-        }
+            get;
+            set => field = value ?? throw new ArgumentNullException(nameof(ConnectHandler));
+        } = (_, _, _) => Task.FromResult(SocksConnectionResult.Failed(ConnectCode.HostUnreachable));
     }
 
 
