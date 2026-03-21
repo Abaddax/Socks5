@@ -5,24 +5,19 @@
     <AssemblyName>Abaddax.$(MSBuildProjectName)</AssemblyName>
     <PackageId>Abaddax.$(MSBuildProjectName)</PackageId>
     <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
-    <LangVersion>latest</LangVersion>
-    <Version>0.1.5</Version>
-    <Description>SOCKS5 Server/Client implementated in .NET</Description>
+    <Version>0.1.6</Version>
+    <Description>SOCKS5 client/server implemented in .NET</Description>
     <Authors>Abaddax</Authors>
     <RepositoryUrl>https://github.com/Abaddax/Socks5.git</RepositoryUrl>
-    <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    <ExternalPackageLicenseFile>../LICENSE</ExternalPackageLicenseFile>
   </PropertyGroup>
-    
+
   <ItemGroup>
-    <PackageReference Include="Abaddax.Utilities" Version="0.1.5" />
-    <PackageReference Include="Abaddax.Build.Common" Version="0.0.1-preview5">
-        <PrivateAssets>all</PrivateAssets>
-        <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    <PackageReference Include="Abaddax.Utilities" Version="0.1.6" />
+    <PackageReference Include="Abaddax.Build.Common" Version="0.0.1-preview6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <None Include="../LICENSE" Pack="true" PackagePath="" />
-  </ItemGroup>
-              
 </Project>

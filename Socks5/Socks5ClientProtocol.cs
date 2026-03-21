@@ -107,7 +107,7 @@ namespace Abaddax.Socks5
                 {
                     _connectionLog.Clear();
 #pragma warning disable CA2000 //Ownership transfer
-                    handshakeStream = new CallbackStream<Stream>(handshakeStream,
+                    handshakeStream = new CallbackStreamWrapper<Stream>(handshakeStream,
                         (buffer, stream, cancellationToken) =>
                         {
                             return new(stream.ReadAsync(buffer, cancellationToken).AsTask().ContinueWith(x =>

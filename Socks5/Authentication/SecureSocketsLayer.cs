@@ -205,7 +205,7 @@ namespace Abaddax.Socks5.Authentication
         #endregion
     }
 
-    public sealed class SecureSocketsLayerServer : IAuthenticationHandler
+    internal sealed class SecureSocketsLayerServer : IAuthenticationHandler
     {
         private readonly SecureSocketsLayer _ssl;
 
@@ -222,7 +222,7 @@ namespace Abaddax.Socks5.Authentication
             => _ssl.SelectAuthenticationMethodAsync(methods, cancellationToken);
     }
 
-    public sealed class SecureSocketsLayerClient : IAuthenticationHandler
+    internal sealed class SecureSocketsLayerClient : IAuthenticationHandler
     {
         private readonly SecureSocketsLayer _ssl;
 
