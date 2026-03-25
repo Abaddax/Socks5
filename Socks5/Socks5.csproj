@@ -5,7 +5,7 @@
     <AssemblyName>Abaddax.$(MSBuildProjectName)</AssemblyName>
     <PackageId>Abaddax.$(MSBuildProjectName)</PackageId>
     <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
-    <Version>0.1.6</Version>
+    <Version>0.1.7</Version>
     <Description>SOCKS5 client/server implemented in .NET</Description>
     <Authors>Abaddax</Authors>
     <RepositoryUrl>https://github.com/Abaddax/Socks5.git</RepositoryUrl>
