@@ -19,7 +19,7 @@ namespace Abaddax.Socks5.Tests
                         throw new Exception("Certificate expires soon");
                     return cert;
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     //Generate new cert
                     File.Delete(certFile);

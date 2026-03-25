@@ -79,8 +79,8 @@ namespace Abaddax.Socks5.Tests
             using var client = new TcpClient("127.0.0.1", _localPort);
             using var server = await serverTask;
 
-            using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = _clientOptions };
-            using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+            using var socksClient = _clientOptions.CreateSocksClient(client.GetStream());
+            using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
 
             var acceptTask = socksServer.AcceptAsync();
             var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
@@ -132,8 +132,8 @@ namespace Abaddax.Socks5.Tests
             using var client = new TcpClient("127.0.0.1", _localPort);
             using var server = await serverTask;
 
-            using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = _clientOptions };
-            using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+            using var socksClient = _clientOptions.CreateSocksClient(client.GetStream());
+            using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
 
             var acceptTask = socksServer.AcceptAsync();
             var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
@@ -188,8 +188,8 @@ namespace Abaddax.Socks5.Tests
             using var client = new TcpClient("127.0.0.1", _localPort);
             using var server = await serverTask;
 
-            using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = _clientOptions };
-            using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+            using var socksClient = _clientOptions.CreateSocksClient(client.GetStream());
+            using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
 
             var acceptTask = socksServer.AcceptAsync();
             var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
@@ -224,8 +224,8 @@ namespace Abaddax.Socks5.Tests
             using var client = new TcpClient("127.0.0.1", _localPort);
             using var server = await serverTask;
 
-            using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = clientOptions };
-            using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+            using var socksClient = clientOptions.CreateSocksClient(client.GetStream());
+            using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
 
             var acceptTask = socksServer.AcceptAsync();
             var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
@@ -271,8 +271,8 @@ namespace Abaddax.Socks5.Tests
             using var client = new TcpClient("127.0.0.1", _localPort);
             using var server = await serverTask;
 
-            using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = _clientOptions };
-            using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+            using var socksClient = _clientOptions.CreateSocksClient(client.GetStream());
+            using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
 
             var acceptTask = socksServer.AcceptAsync();
             var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
@@ -320,8 +320,8 @@ namespace Abaddax.Socks5.Tests
             using var client = new TcpClient("127.0.0.1", _localPort);
             using var server = await serverTask;
 
-            using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = _clientOptions };
-            using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+            using var socksClient = _clientOptions.CreateSocksClient(client.GetStream());
+            using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
 
             var acceptTask = socksServer.AcceptAsync();
             var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
@@ -378,8 +378,8 @@ namespace Abaddax.Socks5.Tests
                 using var client = new TcpClient("127.0.0.1", _localPort);
                 using var server = await serverTask;
 
-                using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = clientOptions1 };
-                using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+                using var socksClient = clientOptions1.CreateSocksClient(client.GetStream());
+                using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
 
                 var acceptTask = socksServer.AcceptAsync();
                 var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
@@ -401,8 +401,8 @@ namespace Abaddax.Socks5.Tests
                 using var client = new TcpClient("127.0.0.1", _localPort);
                 using var server = await serverTask;
 
-                using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = clientOptions2 };
-                using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+                using var socksClient = clientOptions2.CreateSocksClient(client.GetStream());
+                using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
 
                 var acceptTask = socksServer.AcceptAsync();
                 var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);

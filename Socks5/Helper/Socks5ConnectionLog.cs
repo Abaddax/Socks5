@@ -1,4 +1,4 @@
-namespace Abaddax.Socks5.Protocol
+namespace Abaddax.Socks5.Helper
 {
     public readonly record struct Socks5ConnectionLog
     {

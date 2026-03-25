@@ -6,7 +6,7 @@ namespace Abaddax.Socks5
 {
     public delegate Task<SocksConnectionResult> ConnectionHandler(ConnectMethod method, SocksEndpoint endpoint, CancellationToken cancellationToken);
 
-    public class Socks5ServerOptions
+    public record class Socks5ServerOptions
     {
         public IAuthenticationHandler AuthenticationHandler
         {
@@ -18,8 +18,8 @@ namespace Abaddax.Socks5
             get;
             set => field = value ?? throw new ArgumentNullException(nameof(ConnectHandler));
         } = (_, _, _) => Task.FromResult(SocksConnectionResult.Failed(ConnectCode.HostUnreachable));
+        public IObserver<ConnectionState>? ConnectionStateObserver { get; set; }
     }
-
 
     public static class Socks5ServerOptionsBuilder
     {
@@ -63,6 +63,18 @@ namespace Abaddax.Socks5
             ArgumentNullException.ThrowIfNull(connectHandler);
             options.ConnectHandler = connectHandler;
             return options;
+        }
+
+        public static Socks5ServerProtocol CreateSocksServer(this Socks5ServerOptions options, Stream stream)
+        {
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(stream);
+            //Clone options
+            options = options with { };
+            return new Socks5ServerProtocol(stream)
+            {
+                Options = options
+            };
         }
 
     }

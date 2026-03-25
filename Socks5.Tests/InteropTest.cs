@@ -48,7 +48,7 @@ namespace Abaddax.Socks5.Tests
             try
             {
                 using var client = new TcpClient("127.0.0.1", _localPort);
-                using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = clientOptions };
+                using var socksClient = clientOptions.CreateSocksClient(client.GetStream());
 
                 var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
                 using var remotePeer = await _remoteListener.AcceptTcpClientAsync();
@@ -90,7 +90,7 @@ namespace Abaddax.Socks5.Tests
             try
             {
                 using var client = new TcpClient("127.0.0.1", _localPort);
-                using var socksClient = new Socks5ClientProtocol(client.GetStream()) { Options = clientOptions };
+                using var socksClient = clientOptions.CreateSocksClient(client.GetStream());
 
                 var connectTask = socksClient.ConnectAsync(AddressType.IPv4, "127.0.0.1", _remotePort);
                 using var remotePeer = await _remoteListener.AcceptTcpClientAsync();
@@ -148,7 +148,7 @@ namespace Abaddax.Socks5.Tests
             var connectTask = socksClient.ConnectAsync(IPAddress.Loopback, _remotePort);
 
             using var server = await listener.AcceptTcpClientAsync();
-            using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+            using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
             var acceptTask = socksServer.AcceptAsync();
 
             await acceptTask;
@@ -223,7 +223,7 @@ namespace Abaddax.Socks5.Tests
             var connectTask = socksClient.ConnectAsync(IPAddress.Loopback, _remotePort);
 
             using var server = await listener.AcceptTcpClientAsync();
-            using var socksServer = new Socks5ServerProtocol(server.GetStream()) { Options = serverOptions };
+            using var socksServer = serverOptions.CreateSocksServer(server.GetStream());
             var acceptTask = socksServer.AcceptAsync();
 
             await acceptTask;

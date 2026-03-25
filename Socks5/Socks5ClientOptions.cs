@@ -3,7 +3,7 @@ using Abaddax.Socks5.Protocol.Enums;
 
 namespace Abaddax.Socks5
 {
-    public class Socks5ClientOptions
+    public record class Socks5ClientOptions
     {
         public IAuthenticationHandler AuthenticationHandler
         {
@@ -11,6 +11,7 @@ namespace Abaddax.Socks5
             set => field = value ?? throw new ArgumentNullException(nameof(AuthenticationHandler));
         } = new AuthenticationHandlerContainer();
         public ConnectMethod ConnectMethod { get; set; } = ConnectMethod.TCPConnect;
+        public IObserver<ConnectionState>? ConnectionStateObserver { get; set; }
     }
 
     public static class Socks5ClientOptionsBuilder
@@ -57,5 +58,16 @@ namespace Abaddax.Socks5
             return options;
         }
 
+        public static Socks5ClientProtocol CreateSocksClient(this Socks5ClientOptions options, Stream stream)
+        {
+            ArgumentNullException.ThrowIfNull(options);
+            ArgumentNullException.ThrowIfNull(stream);
+            //Clone options
+            options = options with { };
+            return new Socks5ClientProtocol(stream)
+            {
+                Options = options
+            };
+        }
     }
 }

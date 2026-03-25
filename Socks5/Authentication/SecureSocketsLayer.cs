@@ -31,37 +31,45 @@ namespace Abaddax.Socks5.Authentication
         {
             if (method != AuthenticationMethod.SecureSocketsLayer)
                 throw new NotSupportedException();
-#pragma warning disable CA2000 //Ownership transfer
+
             //Initial handshake
             var socksStream = new Socks5CryptoStream(stream)
             {
                 SubnegotiationVersion = 0x01,
                 TLSCommand = Socks5CryptoStream.TlsCommand.InitalHandshake
             };
-#pragma warning restore CA2000
-
-            stream = await _handshakeHandler.Invoke(socksStream, cancellationToken);
-
-            //Option negotiation
-            if (_specificOptions != null)
+            try
             {
-                socksStream.TLSCommand = Socks5CryptoStream.TlsCommand.OptionNegotiation;
-                if (_isServer)
+                stream = await _handshakeHandler.Invoke(socksStream, cancellationToken);
+
+                //Option negotiation
+                if (_specificOptions != null)
                 {
-                    await stream.ReadExactlyAsync(_specificOptions, cancellationToken);
-                    await stream.WriteAsync(_specificOptions, cancellationToken);
+                    socksStream.TLSCommand = Socks5CryptoStream.TlsCommand.OptionNegotiation;
+                    if (_isServer)
+                    {
+                        await stream.ReadExactlyAsync(_specificOptions, cancellationToken);
+                        await stream.WriteAsync(_specificOptions, cancellationToken);
+                    }
+                    else
+                    {
+                        await stream.WriteAsync(_specificOptions, cancellationToken);
+                        await stream.ReadExactlyAsync(_specificOptions, cancellationToken);
+                    }
                 }
-                else
-                {
-                    await stream.WriteAsync(_specificOptions, cancellationToken);
-                    await stream.ReadExactlyAsync(_specificOptions, cancellationToken);
-                }
+
+                //Data flow
+                socksStream.TLSCommand = Socks5CryptoStream.TlsCommand.DataFlow;
+
+                //Successfull -> set 'null' to skip dispose
+                socksStream = null;
+                return stream;
             }
-
-            //Data flow
-            socksStream.TLSCommand = Socks5CryptoStream.TlsCommand.DataFlow;
-
-            return stream;
+            finally
+            {
+                if (socksStream != null)
+                    await socksStream.DisposeAsync();
+            }
         }
 
         #region Helper

@@ -2,43 +2,40 @@ using Abaddax.Socks5.Protocol;
 using Abaddax.Socks5.Protocol.Enums;
 using Abaddax.Socks5.Protocol.Messages;
 using Abaddax.Socks5.Protocol.Messages.Parser;
-using Abaddax.Utilities.IO;
-using System.Collections.Concurrent;
+using Abaddax.Utilities;
 
 namespace Abaddax.Socks5
 {
     public sealed class Socks5ClientProtocol : IDisposable
     {
-        private enum ClientState
-        {
-            None = 0,
-            Authentication = 1,
-            Connection = 2,
-            Connected = 3
-        }
-
-        private readonly ConcurrentQueue<Socks5ConnectionLog>? _connectionLog;
-
         private Stream _stream;
-        private ClientState _state;
         private bool _disposedValue;
 
-        public Socks5ClientProtocol(Stream stream, bool useConnectionLog = false)
+        public Socks5ClientProtocol(Stream stream)
         {
             _stream = stream ?? throw new ArgumentNullException(nameof(stream));
 
-            if (useConnectionLog)
-                _connectionLog = new();
-            _state = ClientState.None;
+            ConnectionState = ConnectionState.None;
         }
 
         public Socks5ClientOptions Options { get; init; } = new Socks5ClientOptions();
 
+        public ConnectionState ConnectionState
+        {
+            get;
+            private set
+            {
+                if (field == value)
+                    return;
+                field = value;
+                Options.ConnectionStateObserver?.OnNext(value);
+            }
+        }
         public Stream Stream
         {
             get
             {
-                if (_state != ClientState.Connected)
+                if (ConnectionState != ConnectionState.Connected)
                     throw new InvalidOperationException("Not jet connected");
                 return _stream;
             }
@@ -46,39 +43,6 @@ namespace Abaddax.Socks5
 
         public SocksEndpoint RemoteEndpoint { get; private set; } = SocksEndpoint.Invalid;
         public SocksEndpoint LocalEndpoint { get; private set; } = SocksEndpoint.Invalid;
-
-        public IEnumerable<Socks5ConnectionLog> ConnectionLog
-        {
-            get
-            {
-                if (_connectionLog == null)
-                    yield break;
-
-                //Merge split messages if needed
-                Socks5ConnectionLog.ConnectionRole? lastRole = null;
-                byte[] data = Array.Empty<byte>();
-                foreach (var logEntry in _connectionLog)
-                {
-                    if (lastRole == null)
-                    {
-                        lastRole = logEntry.Role;
-                        data = logEntry.Data;
-                    }
-                    else if (lastRole != logEntry.Role)
-                    {
-                        yield return new Socks5ConnectionLog() { Role = lastRole.Value, Data = data };
-                        lastRole = logEntry.Role;
-                        data = logEntry.Data;
-                    }
-                    else
-                    {
-                        data = [.. data, .. logEntry.Data];
-                    }
-                }
-                if (lastRole != null)
-                    yield return new Socks5ConnectionLog() { Role = lastRole.Value, Data = data };
-            }
-        }
 
         public Task ConnectAsync(AddressType type, string address, ushort port,
             CancellationToken cancellationToken = default)
@@ -96,37 +60,13 @@ namespace Abaddax.Socks5
         {
             if (remoteEndpoint.AddressType == AddressType.Unknown)
                 throw new ArgumentException($"Endpoint is of type {nameof(AddressType.Unknown)}", nameof(remoteEndpoint));
-            if (_state != ClientState.None)
+            if (ConnectionState != ConnectionState.None)
                 throw new InvalidOperationException("This method can only be called once");
 
-            var handshakeStream = _stream;
+            Stream handshakeStream = _stream;
             try
             {
-                //Log data while handshake is going on
-                if (_connectionLog != null)
-                {
-                    _connectionLog.Clear();
-#pragma warning disable CA2000 //Ownership transfer
-                    handshakeStream = new CallbackStreamWrapper<Stream>(handshakeStream,
-                        (buffer, stream, cancellationToken) =>
-                        {
-                            return new(stream.ReadAsync(buffer, cancellationToken).AsTask().ContinueWith(x =>
-                            {
-                                if (_state != ClientState.Connected)
-                                    _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Server, Data = buffer.ToArray() });
-                                return x.Result;
-                            }, TaskContinuationOptions.NotOnFaulted));
-                        },
-                        (buffer, stream, cancellationToken) =>
-                        {
-                            if (_state != ClientState.Connected)
-                                _connectionLog.Enqueue(new Socks5ConnectionLog() { Role = Socks5ConnectionLog.ConnectionRole.Client, Data = buffer.ToArray() });
-                            return stream.WriteAsync(buffer, cancellationToken);
-                        });
-#pragma warning restore CA2000
-                }
-
-                _state = ClientState.Authentication;
+                ConnectionState = ConnectionState.Authentication;
 
                 AuthenticationMethod authMethod;
                 //Send authentication-request
@@ -149,20 +89,9 @@ namespace Abaddax.Socks5
                 }
 
                 //Handle authentication
-                _stream = await Options.AuthenticationHandler.AuthenticationHandlerAsync(/*Do not log authentication!*/_stream, authMethod, cancellationToken);
+                handshakeStream = await Options.AuthenticationHandler.AuthenticationHandlerAsync(handshakeStream, authMethod, cancellationToken);
 
-                //Continue with current stream
-                if (_connectionLog != null &&
-                    handshakeStream is CallbackStream<Stream> callbackStream)
-                {
-                    callbackStream.UpdateState(_stream);
-                }
-                else
-                {
-                    handshakeStream = _stream;
-                }
-
-                _state = ClientState.Connection;
+                ConnectionState = ConnectionState.Connection;
 
                 //Send connect-request
                 {
@@ -192,12 +121,15 @@ namespace Abaddax.Socks5
                 }
 
                 RemoteEndpoint = remoteEndpoint;
-                _state = ClientState.Connected;
+                _stream = handshakeStream;
+                ConnectionState = ConnectionState.Connected;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 await handshakeStream.DisposeAsync();
                 _stream.Close();
+                ConnectionState = ConnectionState.Disconnected;
+                Options.ConnectionStateObserver?.OnError(ex);
                 throw;
             }
         }
@@ -206,6 +138,7 @@ namespace Abaddax.Socks5
         {
             if (_stream != null)
                 await _stream.DisposeAsync();
+            ConnectionState = ConnectionState.Disconnected;
         }
 
         #region IDisposable
@@ -216,6 +149,7 @@ namespace Abaddax.Socks5
                 if (disposing)
                 {
                     _stream?.Dispose();
+                    SafeExecute.InvokeSafe(() => Options.ConnectionStateObserver?.OnCompleted());
                 }
                 _disposedValue = true;
             }
